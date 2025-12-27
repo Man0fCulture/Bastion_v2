@@ -1,0 +1,454 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import { getAsset } from '@/lib/db';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+
+const asset = getAsset(id!);
+
+if (!asset) {
+  return Astro.redirect('/app/assets');
+}
+
+const stateLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  ASSIGNED: 'Assigné',
+  IN_REPAIR: 'En réparation',
+  LOST: 'Perdu',
+  RETIRED: 'Retiré'
+};
+
+const stateVariants: Record<string, string> = {
+  AVAILABLE: 'success',
+  ASSIGNED: 'info',
+  IN_REPAIR: 'warning',
+  LOST: 'error',
+  RETIRED: 'default'
+};
+---
+<AppLayout title={asset.name} user={user}>
+  <div class="asset-detail">
+    <div class="page-header">
+      <a href="/app/assets" class="back-link">← Retour aux équipements</a>
+      <div class="header-content">
+        <h1 class="page-title">{asset.name}</h1>
+        <span class={`badge badge--${stateVariants[asset.state]} badge--lg`}>{stateLabels[asset.state]}</span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-card detail-card--main">
+        <div class="card-header">
+          <h2 class="card-title">Informations</h2>
+        </div>
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Numéro de série</span>
+              <span class="info-value mono">{asset.serial_number || 'N/A'}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Catégorie</span>
+              <span class="info-value">{asset.category}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Antenne</span>
+              <span class="info-value">{asset.store_name}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Localisation actuelle</span>
+              <span class="info-value">{asset.location_name}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-card detail-card--actions">
+        <div class="card-header">
+          <h2 class="card-title">Actions</h2>
+        </div>
+        <div class="card-body">
+          <div class="actions-list">
+            {asset.state === 'AVAILABLE' && (
+              <button class="action-btn action-btn--primary">Assigner à un agent</button>
+            )}
+            {asset.state === 'ASSIGNED' && (
+              <button class="action-btn action-btn--secondary">Retirer l'assignation</button>
+            )}
+            <button class="action-btn action-btn--outline">Déplacer vers une antenne</button>
+            <button class="action-btn action-btn--outline">Envoyer en réparation</button>
+            {asset.state !== 'RETIRED' && (
+              <button class="action-btn action-btn--danger">Marquer comme perdu</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-card detail-card--history">
+        <div class="card-header">
+          <h2 class="card-title">Historique des mouvements</h2>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <span class="timeline-date">Aujourd'hui</span>
+                <span class="timeline-action">Position actuelle : {asset.location_name}</span>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker timeline-marker--past"></div>
+              <div class="timeline-content">
+                <span class="timeline-date">15 Déc 2024</span>
+                <span class="timeline-action">Assigné depuis Stock {asset.store_name}</span>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-marker timeline-marker--past"></div>
+              <div class="timeline-content">
+                <span class="timeline-date">01 Oct 2024</span>
+                <span class="timeline-action">Création dans l'inventaire</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-card detail-card--photos">
+        <div class="card-header">
+          <h2 class="card-title">Photos</h2>
+          <button class="add-photo-btn">+ Ajouter</button>
+        </div>
+        <div class="card-body">
+          <div class="photos-grid">
+            <div class="photo-placeholder">
+              <span class="placeholder-icon">📷</span>
+              <span class="placeholder-text">Aucune photo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .asset-detail {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-md;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-md;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    font-family: $font-family-heading;
+    font-size: $font-size-3xl;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    font-weight: $font-weight-bold;
+    border-radius: $radius-sm;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge--lg {
+    height: 28px;
+    padding: 0 $spacing-md;
+    font-size: $font-size-sm;
+  }
+
+  .badge--success { background: rgba($color-success, 0.15); color: $color-success; }
+  .badge--info { background: rgba($color-accent, 0.15); color: $color-accent; }
+  .badge--warning { background: rgba($color-warning, 0.15); color: $color-warning; }
+  .badge--error { background: rgba($color-error, 0.15); color: $color-error; }
+  .badge--default { background: $color-bg-elevated; color: $color-text-secondary; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .detail-card {
+    @include glass-panel;
+    border-radius: $radius-xl;
+    overflow: hidden;
+
+    &--main {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    &--actions {
+      grid-column: 2;
+      grid-row: 1;
+
+      @media (max-width: 1024px) {
+        grid-column: 1;
+        grid-row: auto;
+      }
+    }
+
+    &--history {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    &--photos {
+      grid-column: 2;
+      grid-row: 2;
+
+      @media (max-width: 1024px) {
+        grid-column: 1;
+        grid-row: auto;
+      }
+    }
+  }
+
+  .card-header {
+    padding: $spacing-lg;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-title {
+    font-family: $font-family-heading;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+  }
+
+  .card-body {
+    padding: $spacing-lg;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .info-label {
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    color: $color-text-tertiary;
+    letter-spacing: 0.05em;
+  }
+
+  .info-value {
+    font-size: $font-size-base;
+    color: $color-text-primary;
+
+    &.mono {
+      font-family: $font-family-mono;
+    }
+  }
+
+  .actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .action-btn {
+    width: 100%;
+    padding: $spacing-md $spacing-lg;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all $transition-fast;
+    border: 1px solid transparent;
+
+    &--primary {
+      background: linear-gradient(135deg, $color-accent, darken($color-accent, 10%));
+      color: white;
+
+      &:hover {
+        box-shadow: 0 4px 20px rgba($color-accent, 0.4);
+        transform: translateY(-2px);
+      }
+    }
+
+    &--secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: $color-text-primary;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    }
+
+    &--outline {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.2);
+      color: $color-text-secondary;
+
+      &:hover {
+        border-color: $color-accent;
+        color: $color-accent;
+      }
+    }
+
+    &--danger {
+      background: transparent;
+      border-color: rgba($color-error, 0.3);
+      color: $color-error;
+
+      &:hover {
+        background: rgba($color-error, 0.1);
+        border-color: $color-error;
+      }
+    }
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 12px;
+      bottom: 12px;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: $spacing-md;
+    position: relative;
+  }
+
+  .timeline-marker {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: $color-accent;
+    flex-shrink: 0;
+    margin-top: 4px;
+    box-shadow: 0 0 10px rgba($color-accent, 0.5);
+
+    &--past {
+      background: rgba(255, 255, 255, 0.3);
+      box-shadow: none;
+    }
+  }
+
+  .timeline-content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .timeline-date {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .timeline-action {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .add-photo-btn {
+    padding: $spacing-xs $spacing-md;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: $radius-md;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: $color-text-primary;
+    }
+  }
+
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: $spacing-md;
+  }
+
+  .photo-placeholder {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: $radius-md;
+  }
+
+  .placeholder-icon {
+    font-size: $font-size-2xl;
+    opacity: 0.3;
+  }
+
+  .placeholder-text {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+</style>

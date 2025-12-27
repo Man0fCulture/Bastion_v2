@@ -1,0 +1,26 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Bastion - Système d\'inventaire multi-boutiques' } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content={description}>
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>{title} | Bastion</title>
+</head>
+<body>
+  <slot />
+</body>
+</html>
+
+<style lang="scss" is:global>
+  @use '../styles/global.scss';
+</style>

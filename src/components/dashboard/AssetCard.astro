@@ -1,0 +1,212 @@
+---
+import Badge from '../ui/Badge.astro';
+
+interface Props {
+  id: string;
+  name: string;
+  category: string;
+  state: string;
+  serialNumber?: string;
+  location: string;
+}
+
+const { id, name, category, state, serialNumber, location } = Astro.props;
+
+const stateVariants: Record<string, 'success' | 'info' | 'warning' | 'error' | 'default'> = {
+  AVAILABLE: 'success',
+  ASSIGNED: 'info',
+  IN_REPAIR: 'warning',
+  LOST: 'error',
+  RETIRED: 'default'
+};
+
+const stateLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  ASSIGNED: 'Assigné',
+  IN_REPAIR: 'En réparation',
+  LOST: 'Perdu',
+  RETIRED: 'Retiré'
+};
+---
+
+<a href={`/app/assets/${id}`} class="asset-card">
+  <div class="asset-card__main">
+    <div class="asset-card__header">
+      <h3 class="asset-card__name">{name}</h3>
+      <Badge variant={stateVariants[state] || 'default'} size="sm">
+        {stateLabels[state] || state}
+      </Badge>
+    </div>
+    
+    <div class="asset-card__details">
+      <div class="detail-item">
+        <span class="detail-label">Catégorie</span>
+        <span class="detail-value">{category}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Localisation</span>
+        <span class="detail-value">{location}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="asset-card__footer">
+    {serialNumber ? <span class="serial-number">S/N: {serialNumber}</span> : <span></span>}
+    <div class="action-icon">→</div>
+  </div>
+
+  <div class="corner-accent corner-accent--tl"></div>
+  <div class="corner-accent corner-accent--br"></div>
+</a>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .asset-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient(145deg, rgba(10, 15, 30, 0.8), rgba(0, 0, 0, 0.9));
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: $radius-lg;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    min-height: 140px;
+    transition: all $transition-base;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 70%);
+      opacity: 0.5;
+      transition: opacity $transition-base;
+    }
+
+    &:hover {
+      border-color: rgba(37, 99, 235, 0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 99, 235, 0.2);
+
+      &::before {
+        opacity: 0.8;
+      }
+
+      .action-icon {
+        transform: translateX(4px);
+        color: $color-accent;
+        text-shadow: 0 0 10px rgba(37, 99, 235, 0.8);
+      }
+
+      .serial-number {
+        color: $color-text-primary;
+      }
+      
+      .corner-accent {
+        opacity: 1;
+        box-shadow: 0 0 8px $color-accent;
+      }
+    }
+  }
+
+  .asset-card__main {
+    padding: $spacing-lg;
+  }
+
+  .asset-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+    position: relative;
+    z-index: 1;
+  }
+
+  .asset-card__name {
+    font-family: $font-family-heading;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    line-height: $line-height-snug;
+  }
+
+  .asset-card__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+    position: relative;
+    z-index: 1;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .detail-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: $color-text-tertiary;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-value {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    font-family: $font-family-mono;
+  }
+
+  .asset-card__footer {
+    padding: $spacing-sm $spacing-lg;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .serial-number {
+    font-family: $font-family-mono;
+    font-size: 0.75rem;
+    color: $color-text-muted;
+    letter-spacing: 0.05em;
+    transition: color $transition-fast;
+  }
+
+  .action-icon {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    transition: all $transition-fast;
+  }
+
+  // Corner accents for technical look
+  .corner-accent {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border: 1px solid $color-accent;
+    transition: opacity $transition-fast;
+    opacity: 0.3;
+  }
+
+  .corner-accent--tl {
+    top: 4px;
+    left: 4px;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .corner-accent--br {
+    bottom: 4px;
+    right: 4px;
+    border-left: none;
+    border-top: none;
+  }
+</style>

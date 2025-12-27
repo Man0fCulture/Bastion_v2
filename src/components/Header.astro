@@ -1,0 +1,90 @@
+---
+import Button from './ui/Button.astro';
+
+interface Props {
+  showNav?: boolean;
+}
+
+const { showNav = true } = Astro.props;
+---
+<header class="header">
+  <div class="header__container">
+    <a href="/" class="header__logo">
+      <span class="header__logo-text">Bastion</span>
+    </a>
+
+    {showNav && (
+      <nav class="header__nav">
+        <a href="#features" class="header__link">Fonctionnalités</a>
+        <a href="#how-it-works" class="header__link">Comment ça marche</a>
+        <a href="#contact" class="header__link">Contact</a>
+      </nav>
+    )}
+
+    <div class="header__actions">
+      <Button href="/app" variant="primary" size="sm">Accéder à l'app</Button>
+    </div>
+  </div>
+</header>
+
+<style lang="scss">
+  @use '../styles/variables' as *;
+  @use '../styles/mixins' as *;
+
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: $z-sticky;
+    @include glass-effect;
+    border-bottom: 1px solid $color-border;
+  }
+
+  .header__container {
+    @include container;
+    @include flex-between;
+    height: 60px;
+  }
+
+  .header__logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .header__logo-text {
+    font-family: $font-family-heading;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    @include text-noble;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .header__nav {
+    display: none;
+    gap: $spacing-xl;
+
+    @include respond-to(md) {
+      display: flex;
+    }
+  }
+
+  .header__link {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    text-decoration: none;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text-primary;
+    }
+  }
+
+  .header__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+</style>

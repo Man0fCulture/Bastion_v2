@@ -1,0 +1,117 @@
+---
+import Card from '../ui/Card.astro';
+
+interface Stat {
+  label: string;
+  value: string;
+  trend?: string;
+  trendUp?: boolean;
+}
+
+interface Props {
+  stats: Stat[];
+}
+
+const { stats } = Astro.props;
+---
+
+<div class="stats-grid">
+  {stats.map((stat) => (
+    <div class="stat-card">
+      <div class="stat-card__header">
+        <span class="stat-card__label">{stat.label}</span>
+        {stat.trend && (
+          <span class:list={['stat-card__trend', { 'stat-card__trend--up': stat.trendUp, 'stat-card__trend--down': !stat.trendUp }]}>
+            {stat.trend}
+          </span>
+        )}
+      </div>
+      <div class="stat-card__value">{stat.value}</div>
+      <div class="stat-card__decoration"></div>
+    </div>
+  ))}
+</div>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: $spacing-md;
+    margin-bottom: $spacing-xl;
+  }
+
+  .stat-card {
+    @include glass-panel;
+    padding: $spacing-lg;
+    border-radius: $radius-md;
+    position: relative;
+    overflow: hidden;
+    
+    // Technical corner accent
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, transparent 50%, rgba(37, 99, 235, 0.2) 50%);
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .stat-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-sm;
+  }
+
+  .stat-card__label {
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $color-text-tertiary;
+    font-weight: $font-weight-medium;
+  }
+
+  .stat-card__trend {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    padding: 2px 6px;
+    border-radius: $radius-sm;
+    background: rgba(0, 0, 0, 0.3);
+
+    &--up {
+      color: $color-success;
+      border: 1px solid rgba($color-success, 0.2);
+    }
+    
+    &--down {
+      color: $color-error;
+      border: 1px solid rgba($color-error, 0.2);
+    }
+  }
+
+  .stat-card__value {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    font-family: $font-family-heading;
+    letter-spacing: -0.02em;
+  }
+
+  .stat-card__decoration {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, $color-accent, transparent);
+    opacity: 0.5;
+  }
+</style>

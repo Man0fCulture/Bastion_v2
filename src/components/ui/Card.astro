@@ -1,0 +1,41 @@
+---
+interface Props {
+  variant?: 'default' | 'interactive';
+  class?: string;
+}
+
+const { variant = 'default', class: className = '' } = Astro.props;
+---
+<div class:list={['card', `card--${variant}`, className]}>
+  <slot />
+</div>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .card {
+    @include glass-panel;
+    border-radius: $radius-xl;
+    padding: $spacing-xl;
+    transition: all $transition-base;
+  }
+
+  .card--interactive {
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover {
+        transform: translateY(-4px);
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    @include reduced-motion {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+</style>

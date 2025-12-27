@@ -1,0 +1,266 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import { mockData } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const stores = mockData.stores;
+---
+<AppLayout title="Antennes" user={user}>
+  <div class="stores-page">
+    <header class="page-header">
+      <div class="page-header__content">
+        <h1 class="page-title">Antennes</h1>
+        <p class="page-subtitle">Réseau des {stores.length} antennes opérationnelles</p>
+      </div>
+    </header>
+
+    <div class="stores-grid">
+      {stores.map((store, index) => (
+        <div class="store-card" style={`--delay: ${index * 0.05}s`}>
+          <div class="store-card__header">
+            <span class="store-code">{store.code}</span>
+            <span class="store-status">Actif</span>
+          </div>
+          <h3 class="store-name">{store.name}</h3>
+          <div class="store-stats">
+            <div class="store-stat">
+              <span class="store-stat__value">--</span>
+              <span class="store-stat__label">Agents</span>
+            </div>
+            <div class="store-stat">
+              <span class="store-stat__value">--</span>
+              <span class="store-stat__label">Équipements</span>
+            </div>
+          </div>
+          <a href={`/app/stores/${store.id}`} class="store-link">Voir l'antenne</a>
+        </div>
+      ))}
+    </div>
+
+    <section class="network-overview">
+      <h2 class="section-title">Vue réseau</h2>
+      <div class="network-stats">
+        <div class="network-stat">
+          <div class="network-stat__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="network-stat__content">
+            <span class="network-stat__value" id="total-agents">--</span>
+            <span class="network-stat__label">Agents actifs</span>
+          </div>
+        </div>
+        <div class="network-stat">
+          <div class="network-stat__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+          <div class="network-stat__content">
+            <span class="network-stat__value" id="total-assets">--</span>
+            <span class="network-stat__label">Équipements</span>
+          </div>
+        </div>
+        <div class="network-stat">
+          <div class="network-stat__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <div class="network-stat__content">
+            <span class="network-stat__value" id="available-assets">--</span>
+            <span class="network-stat__label">Disponibles</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</AppLayout>
+
+<script>
+  import { mockData } from '../../../lib/db';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const agents = mockData.employees.filter(e => e.active).length;
+    const assets = mockData.assets.length;
+    const available = mockData.assets.filter(a => a.state === 'AVAILABLE').length;
+
+    const agentsEl = document.getElementById('total-agents');
+    const assetsEl = document.getElementById('total-assets');
+    const availableEl = document.getElementById('available-assets');
+
+    if (agentsEl) agentsEl.textContent = String(agents);
+    if (assetsEl) assetsEl.textContent = String(assets);
+    if (availableEl) availableEl.textContent = String(available);
+  });
+</script>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .page-header {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .page-title {
+    font-size: $font-size-2xl;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    font-size: $font-size-sm;
+  }
+
+  .stores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: $spacing-lg;
+    margin-bottom: $spacing-3xl;
+  }
+
+  .store-card {
+    @include glass-panel;
+    border-radius: $radius-xl;
+    padding: $spacing-xl;
+    transition: all $transition-base;
+    animation: fadeIn 0.4s ease-out backwards;
+    animation-delay: var(--delay);
+
+    &:hover {
+      transform: translateY(-4px);
+      border-color: $color-accent;
+      box-shadow: 0 0 30px rgba($color-accent, 0.1);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .store-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-md;
+  }
+
+  .store-code {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+    background: rgba($color-accent, 0.1);
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-sm;
+  }
+
+  .store-status {
+    font-size: $font-size-xs;
+    color: $color-success;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .store-name {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-lg;
+  }
+
+  .store-stats {
+    display: flex;
+    gap: $spacing-xl;
+    margin-bottom: $spacing-lg;
+    padding-top: $spacing-md;
+    border-top: 1px solid $color-border;
+  }
+
+  .store-stat__value {
+    display: block;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+
+  .store-stat__label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .store-link {
+    display: block;
+    text-align: center;
+    padding: $spacing-sm $spacing-lg;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: $color-accent;
+      border-color: $color-accent;
+      color: #000;
+    }
+  }
+
+  .network-overview {
+    @include glass-panel;
+    border-radius: $radius-xl;
+    padding: $spacing-2xl;
+  }
+
+  .section-title {
+    font-size: $font-size-lg;
+    margin-bottom: $spacing-xl;
+    color: $color-text-secondary;
+  }
+
+  .network-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: $spacing-xl;
+  }
+
+  .network-stat {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+  }
+
+  .network-stat__icon {
+    width: 48px;
+    height: 48px;
+    @include flex-center;
+    background: rgba($color-accent, 0.1);
+    border-radius: $radius-lg;
+    color: $color-accent;
+  }
+
+  .network-stat__value {
+    display: block;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+
+  .network-stat__label {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+</style>

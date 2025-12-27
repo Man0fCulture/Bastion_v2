@@ -1,0 +1,233 @@
+---
+import Badge from '../ui/Badge.astro';
+
+interface Props {
+  id: string;
+  asset_name: string;
+  firstname: string;
+  lastname: string;
+  matricule: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  created_at: string;
+}
+
+const { id, asset_name,Rb, firstname, lastname, matricule, status, created_at } = Astro.props;
+
+const initials = (firstname[0] + lastname[0]).toUpperCase();
+
+const statusLabels: Record<string, string> = {
+  PENDING: 'En attente',
+  APPROVED: 'Approuvée',
+  REJECTED: 'Rejetée',
+  CANCELLED: 'Annulée'
+};
+
+const statusVariants: Record<string, 'warning' | 'success' | 'error' | 'default'> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'error',
+  CANCELLED: 'default'
+};
+---
+
+<div class="claim-card" data-id={id}>
+  <div class="claim-card__header">
+    <Badge variant={statusVariants[status]} size="sm">
+      {statusLabels[status]}
+    </Badge>
+    <span class="claim-date">{new Date(created_at).toLocaleDateString('fr-FR')}</span>
+  </div>
+
+  <div class="claim-card__main">
+    <h3 class="claim-asset">{asset_name}</h3>
+    
+    <div class="claim-requester">
+      <div class="requester-avatar">
+        {initials}
+      </div>
+      <div class="requester-info">
+        <span class="requester-name">{firstname} {lastname}</span>
+        <span class="requester-matricule">{matricule}</span>
+      </div>
+    </div>
+  </div>
+
+  {status === 'PENDING' && (
+    <div class="claim-card__actions">
+      <button class="action-btn action-btn--approve" data-action="approve" data-id={id}>Approuver</button>
+      <button class="action-btn action-btn--reject" data-action="reject" data-id={id}>Rejeter</button>
+    </div>
+  )}
+
+  <div class="corner-accent corner-accent--tr"></div>
+  <div class="corner-accent corner-accent--bl"></div>
+</div>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .claim-card {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(145deg, rgba(10, 15, 30, 0.8), rgba(0, 0, 0, 0.9));
+    backdrop-filter: blur(12px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: $radius-lg;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    transition: all $transition-base;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent 70%);
+      opacity: 0.5;
+      transition: opacity $transition-base;
+    }
+
+    &:hover {
+      border-color: rgba(37, 99, 235, 0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 99, 235, 0.2);
+
+      &::before {
+        opacity: 0.8;
+      }
+
+      .corner-accent {
+        opacity: 1;
+        box-shadow: 0 0 8px $color-accent;
+      }
+    }
+  }
+
+  .claim-card__header {
+    padding: $spacing-md $spacing-lg;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 1;
+  }
+
+  .claim-date {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .claim-card__main {
+    padding: $spacing-lg;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+  }
+
+  .claim-asset {
+    font-family: $font-family-heading;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-lg;
+    line-height: $line-height-snug;
+  }
+
+  .claim-requester {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  .requester-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    @include flex-center;
+    font-family: $font-family-heading;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .requester-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .requester-name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .requester-matricule {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .claim-card__actions {
+    padding: $spacing-md $spacing-lg;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: $spacing-sm;
+    position: relative;
+    z-index: 1;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: $spacing-sm;
+    border-radius: $radius-sm;
+    border: 1px solid transparent;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &--approve {
+      background: rgba($color-success, 0.1);
+      color: $color-success;
+      border-color: rgba($color-success, 0.2);
+
+      &:hover {
+        background: $color-success;
+        color: #000;
+        box-shadow: 0 0 10px rgba($color-success, 0.4);
+      }
+    }
+
+    &--reject {
+      background: rgba($color-error, 0.1);
+      color: $color-error;
+      border-color: rgba($color-error, 0.2);
+
+      &:hover {
+        background: $color-error;
+        color: #fff;
+        box-shadow: 0 0 10px rgba($color-error, 0.4);
+      }
+    }
+  }
+
+  .corner-accent {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 1px solid $color-accent;
+    transition: opacity $transition-fast;
+    opacity: 0.3;
+  }
+
+  .corner-accent--tr { top: 0; right: 0; border-bottom: none; border-left: none; }
+  .corner-accent--bl { bottom: 0; left: 0; border-top: none; border-right: none; }
+</style>

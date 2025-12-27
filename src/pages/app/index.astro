@@ -1,0 +1,349 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../layouts/AppLayout.astro';
+import { getAssets, getEmployees, getClaims } from '@/lib/db';
+
+const user = Astro.locals.user!;
+const assets = getAssets();
+const employees = getEmployees();
+const claims = getClaims();
+
+const totalAssets = assets.length;
+const available = assets.filter(a => a.state === 'AVAILABLE').length;
+const inRepair = assets.filter(a => a.state === 'IN_REPAIR').length;
+const pendingClaims = claims.filter(c => c.status === 'PENDING').length;
+
+const stateLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  ASSIGNED: 'Assigné',
+  IN_REPAIR: 'Réparation',
+  LOST: 'Perdu',
+  RETIRED: 'Retiré'
+};
+
+const stateVariants: Record<string, string> = {
+  AVAILABLE: 'success',
+  ASSIGNED: 'info',
+  IN_REPAIR: 'warning',
+  LOST: 'error',
+  RETIRED: 'default'
+};
+---
+<AppLayout title="Command Center" user={user}>
+  <div class="dashboard">
+    <div class="dashboard__header">
+      <h1 class="dashboard__title">Command Center</h1>
+      <p class="dashboard__subtitle">Vue d'ensemble du système</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">{totalAssets}</span>
+        <span class="stat-label">Équipements</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{available}</span>
+        <span class="stat-label">Disponibles</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{inRepair}</span>
+        <span class="stat-label">En réparation</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{employees.length}</span>
+        <span class="stat-label">Agents</span>
+      </div>
+      <div class="stat-card stat-card--warning">
+        <span class="stat-value">{pendingClaims}</span>
+        <span class="stat-label">Demandes en attente</span>
+      </div>
+    </div>
+
+    <div class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-title">Équipements récents</h2>
+        <a href="/app/assets" class="section-link">Voir tout →</a>
+      </div>
+      <div class="assets-grid">
+        {assets.slice(0, 6).map(asset => (
+          <a href={`/app/assets/${asset.id}`} class="asset-card">
+            <div class="asset-card__main">
+              <div class="asset-card__header">
+                <h3 class="asset-card__name">{asset.name}</h3>
+                <span class={`badge badge--${stateVariants[asset.state]}`}>{stateLabels[asset.state]}</span>
+              </div>
+              <div class="asset-card__details">
+                <div class="detail-item">
+                  <span class="detail-label">Catégorie</span>
+                  <span class="detail-value">{asset.category}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Localisation</span>
+                  <span class="detail-value">{asset.location_name}</span>
+                </div>
+              </div>
+            </div>
+            <div class="asset-card__footer">
+              <span class="serial-number">{asset.serial_number ? `S/N: ${asset.serial_number}` : ''}</span>
+              <span class="action-icon">→</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="dashboard__section">
+      <div class="section-header">
+        <h2 class="section-title">Agents</h2>
+        <a href="/app/employees" class="section-link">Voir tout →</a>
+      </div>
+      <div class="employees-grid">
+        {employees.slice(0, 4).map(emp => (
+          <a href={`/app/employees/${emp.id}`} class="employee-card-mini">
+            <div class="employee-avatar">{emp.firstname[0]}{emp.lastname[0]}</div>
+            <div class="employee-info">
+              <span class="employee-name">{emp.firstname} {emp.lastname}</span>
+              <span class="employee-affectation">{emp.affectation}</span>
+            </div>
+            <span class="action-icon">→</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .dashboard__header {
+    margin-bottom: $spacing-md;
+  }
+
+  .dashboard__title {
+    font-family: $font-family-heading;
+    font-size: $font-size-3xl;
+    text-transform: uppercase;
+    margin-bottom: $spacing-xs;
+  }
+
+  .dashboard__subtitle {
+    color: $color-text-secondary;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: $spacing-lg;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    @include glass-panel;
+    padding: $spacing-lg $spacing-xl;
+    border-radius: $radius-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    min-width: 140px;
+
+    &--warning .stat-value {
+      color: $color-warning;
+    }
+  }
+
+  .stat-value {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+  }
+
+  .stat-label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .dashboard__section {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .section-title {
+    font-family: $font-family-heading;
+    font-size: $font-size-xl;
+    text-transform: uppercase;
+  }
+
+  .section-link {
+    font-size: $font-size-sm;
+    color: $color-accent;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .assets-grid {
+    display: grid;
+    gap: $spacing-lg;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .employees-grid {
+    display: grid;
+    gap: $spacing-md;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 $spacing-sm;
+    height: 20px;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    border-radius: $radius-sm;
+    text-transform: uppercase;
+  }
+
+  .badge--success { background: rgba($color-success, 0.15); color: $color-success; }
+  .badge--info { background: rgba($color-accent, 0.15); color: $color-accent; }
+  .badge--warning { background: rgba($color-warning, 0.15); color: $color-warning; }
+  .badge--error { background: rgba($color-error, 0.15); color: $color-error; }
+  .badge--default { background: $color-bg-elevated; color: $color-text-secondary; }
+
+  .asset-card {
+    display: flex;
+    flex-direction: column;
+    @include glass-panel;
+    border-radius: $radius-lg;
+    text-decoration: none;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: rgba($color-accent, 0.5);
+      transform: translateY(-4px);
+    }
+  }
+
+  .asset-card__main {
+    padding: $spacing-lg;
+  }
+
+  .asset-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  .asset-card__name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+
+  .asset-card__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .detail-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: $color-text-tertiary;
+  }
+
+  .detail-value {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .asset-card__footer {
+    padding: $spacing-sm $spacing-lg;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .serial-number {
+    font-family: $font-family-mono;
+    font-size: 0.75rem;
+    color: $color-text-muted;
+  }
+
+  .action-icon {
+    color: $color-text-tertiary;
+  }
+
+  .employee-card-mini {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-md $spacing-lg;
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    text-decoration: none;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: rgba($color-accent, 0.5);
+      transform: translateY(-2px);
+    }
+  }
+
+  .employee-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    @include flex-center;
+    font-weight: $font-weight-bold;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  .employee-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .employee-name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .employee-affectation {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+</style>

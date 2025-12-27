@@ -1,0 +1,101 @@
+---
+import Card from '../ui/Card.astro';
+
+const features = [
+  {
+    title: 'Stock national',
+    description: 'Vue agrégée de toutes vos boutiques. Filtrez par emplacement, catégorie ou état en un clic.'
+  },
+  {
+    title: 'Traçabilité totale',
+    description: 'Chaque mouvement d\'objet est enregistré. Historique complet, audit simplifié.'
+  },
+  {
+    title: 'Validation managériale',
+    description: 'Les employés déclarent leur possession. Les managers valident. Zéro confusion.'
+  },
+  {
+    title: 'Photos et serial',
+    description: 'Chaque objet documenté avec photos et numéro de série unique.'
+  },
+  {
+    title: 'Multi-boutiques',
+    description: '14 boutiques synchronisées. Une source de vérité pour tout le matériel.'
+  },
+  {
+    title: 'Sécurisé',
+    description: 'Authentification forte, sessions sécurisées, chiffrement des données sensibles.'
+  }
+];
+---
+<section id="features" class="features">
+  <div class="features__container">
+    <div class="features__header" data-reveal="up">
+      <h2 class="features__title">Tout ce qu'il faut</h2>
+      <p class="features__subtitle">
+        Un outil pensé pour simplifier la gestion de votre inventaire au quotidien.
+      </p>
+    </div>
+    <div class="features__grid">
+      {features.map((feature, index) => (
+        <Card class="features__card" data-reveal="up" data-reveal-delay={String(index * 0.1)}>
+          <h3 class="features__card-title">{feature.title}</h3>
+          <p class="features__card-description">{feature.description}</p>
+        </Card>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .features {
+    padding: $spacing-5xl 0;
+    background: $color-bg-secondary;
+  }
+
+  .features__container {
+    @include container;
+  }
+
+  .features__header {
+    text-align: center;
+    margin-bottom: $spacing-4xl;
+  }
+
+  .features__title {
+    margin-bottom: $spacing-md;
+  }
+
+  .features__subtitle {
+    max-width: 500px;
+    margin: 0 auto;
+    font-size: $font-size-lg;
+  }
+
+  .features__grid {
+    display: grid;
+    gap: $spacing-lg;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include respond-to(lg) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .features__card-title {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-sm;
+    color: $color-text-primary;
+  }
+
+  .features__card-description {
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+  }
+</style>

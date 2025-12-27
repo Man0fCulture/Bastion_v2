@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Hero from '../components/sections/Hero.astro';
+import Features from '../components/sections/Features.astro';
+import HowItWorks from '../components/sections/HowItWorks.astro';
+---
+<BaseLayout title="Accueil">
+  <Header />
+  <main>
+    <Hero />
+    <Features />
+    <HowItWorks />
+  </main>
+  <Footer />
+</BaseLayout>
+
+<script>
+  import { initAnimations } from '../lib/animations';
+  document.addEventListener('DOMContentLoaded', initAnimations);
+</script>

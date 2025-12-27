@@ -1,0 +1,86 @@
+---
+import Button from '../ui/Button.astro';
+---
+<section class="hero" data-hero>
+  <div class="hero__container">
+    <h1 class="hero__title" data-hero-title>
+      Inventaire intelligent<br />
+      <span class="hero__title-accent">pour vos équipes</span>
+    </h1>
+    <p class="hero__subtitle" data-hero-subtitle>
+      Gérez le matériel de vos 14 boutiques depuis une interface unique.
+      Traçabilité complète, validation managériale, zéro perte.
+    </p>
+    <div class="hero__cta" data-hero-cta>
+      <Button href="/app" size="lg">Accéder à l'application</Button>
+      <Button href="#how-it-works" variant="secondary" size="lg">Découvrir</Button>
+    </div>
+  </div>
+  <div class="hero__gradient"></div>
+</section>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: $spacing-5xl 0;
+    overflow: hidden;
+  }
+
+  .hero__container {
+    @include container;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .hero__title {
+    font-size: clamp(2.5rem, 8vw, $font-size-hero);
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    letter-spacing: -0.03em;
+    margin-bottom: $spacing-xl;
+  }
+
+  .hero__title-accent {
+    @include text-gradient;
+  }
+
+  .hero__subtitle {
+    max-width: 600px;
+    margin: 0 auto $spacing-2xl;
+    font-size: $font-size-lg;
+    line-height: $line-height-relaxed;
+
+    @include respond-to(md) {
+      font-size: $font-size-xl;
+    }
+  }
+
+  .hero__cta {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    justify-content: center;
+
+    @include respond-to(sm) {
+      flex-direction: row;
+    }
+  }
+
+  .hero__gradient {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150%;
+    height: 150%;
+    background: radial-gradient(ellipse at center, rgba($color-accent, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+</style>

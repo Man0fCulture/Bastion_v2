@@ -1,0 +1,94 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import StatsRow from '../../../components/dashboard/StatsRow.astro';
+import ClaimCard from '../../../components/dashboard/ClaimCard.astro';
+import { getClaims } from '@/lib/db';
+
+const user = Astro.locals.user!;
+const claims = getClaims();
+
+const pending = claims.filter(c => c.status === 'PENDING').length;
+const approved = claims.filter(c => c.status === 'APPROVED').length;
+
+// Transform data for StatsRow
+const stats = [
+  { label: 'Total', value: claims.length.toString(), trend: 'NEW', trendUp: true },
+  { label: 'En attente', value: pending.toString(), trend: pending > 0 ? 'ACTION' : '', trendUp: false },
+  { label: 'Validées', value: approved.toString(), trend: '+5%', trendUp: true },
+];
+---
+<AppLayout title="Demandes" user={user}>
+  <div class="claims-page">
+    <header class="page-header">
+      <h1 class="page-title">Centre de Demandes</h1>
+      <p class="page-subtitle">Gestion et validation des assets</p>
+    </header>
+
+    <StatsRow stats={stats} />
+
+    {claims.length === 0 ? (
+      <div class="empty-state">
+        <p>Aucune demande en cours</p>
+      </div>
+    ) : (
+      <div class="dashboard__grid">
+        {claims.map(claim => (
+          <ClaimCard 
+            id={claim.id}
+            asset_name={claim.asset_name}
+            firstname={claim.firstname}
+            lastname={claim.lastname}
+            matricule={claim.matricule}
+            status={claim.status}
+            created_at={claim.created_at}
+          />
+        ))}
+      </div>
+    )}
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .claims-page {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-sm;
+  }
+
+  .page-title {
+    font-family: $font-family-heading;
+    font-size: $font-size-3xl;
+    text-transform: uppercase;
+    margin-bottom: $spacing-xs;
+    @include text-royal;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+    font-family: $font-family-mono;
+  }
+
+  .dashboard__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .empty-state {
+    @include glass-panel;
+    padding: $spacing-3xl;
+    border-radius: $radius-lg;
+    text-align: center;
+    color: $color-text-secondary;
+    font-family: $font-family-mono;
+  }
+</style>

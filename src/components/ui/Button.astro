@@ -1,0 +1,138 @@
+---
+interface Props {
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  href?: string;
+  type?: 'button' | 'submit';
+  disabled?: boolean;
+  class?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  href,
+  type = 'button',
+  disabled = false,
+  class: className = ''
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+---
+<Tag
+  href={href}
+  type={!href ? type : undefined}
+  disabled={disabled}
+  class:list={['btn', `btn--${variant}`, `btn--${size}`, className]}
+>
+  <slot />
+</Tag>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    font-family: $font-family-base;
+    font-weight: $font-weight-medium;
+    text-decoration: none;
+    border-radius: $radius-sm; // Sharper corners
+    cursor: pointer;
+    transition: all $transition-fast; // Faster, snappier transition
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: $font-size-xs;
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  }
+
+  .btn--primary {
+    background: $color-accent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transform: skewX(-20deg);
+      transition: left 0.5s ease;
+    }
+
+    &:hover:not(:disabled) {
+      background: $color-accent-hover;
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.6);
+      border-color: rgba(255, 255, 255, 0.3);
+      
+      &::before {
+        left: 150%;
+      }
+    }
+
+    &:active:not(:disabled) {
+        transform: scale(0.98);
+    }
+  }
+
+  .btn--secondary {
+    background: rgba(37, 99, 235, 0.1);
+    color: $color-accent;
+    border: 1px solid rgba(37, 99, 235, 0.3);
+
+    &:hover:not(:disabled) {
+      background: rgba(37, 99, 235, 0.2);
+      border-color: $color-accent;
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+    }
+  }
+
+  .btn--ghost {
+    background: transparent;
+    color: $color-text-secondary;
+    border: 1px solid transparent;
+
+    &:hover:not(:disabled) {
+      color: $color-text-primary;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .btn--sm {
+    height: 32px;
+    padding: 0 $spacing-md;
+    font-size: 0.7rem;
+  }
+
+  .btn--md {
+    height: 40px;
+    padding: 0 $spacing-lg;
+    font-size: $font-size-xs;
+  }
+
+  .btn--lg {
+    height: 48px;
+    padding: 0 $spacing-xl;
+    font-size: $font-size-sm;
+  }
+</style>

@@ -1,0 +1,114 @@
+---
+const steps = [
+  {
+    number: '01',
+    title: 'L\'employé déclare',
+    description: 'Via QR code ou recherche, l\'employé indique qu\'il possède un objet.'
+  },
+  {
+    number: '02',
+    title: 'Le manager valide',
+    description: 'La demande apparaît dans le tableau de bord. Approbation ou rejet en un clic.'
+  },
+  {
+    number: '03',
+    title: 'L\'historique s\'enrichit',
+    description: 'Chaque mouvement est tracé. L\'objet est assigné à l\'employé.'
+  },
+  {
+    number: '04',
+    title: 'La visibilité totale',
+    description: 'Stock national à jour, filtrable par boutique, catégorie ou employé.'
+  }
+];
+---
+<section id="how-it-works" class="how-it-works" data-sticky-section>
+  <div class="how-it-works__container">
+    <div class="how-it-works__header" data-reveal="up">
+      <h2 class="how-it-works__title">Comment ça marche</h2>
+      <p class="how-it-works__subtitle">
+        Un processus simple en 4 étapes pour une gestion sans friction.
+      </p>
+    </div>
+    <div class="how-it-works__steps">
+      {steps.map((step) => (
+        <div class="how-it-works__step" data-sticky-step>
+          <span class="how-it-works__step-number">{step.number}</span>
+          <div class="how-it-works__step-content">
+            <h3 class="how-it-works__step-title">{step.title}</h3>
+            <p class="how-it-works__step-description">{step.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style lang="scss">
+  @use '../../styles/variables' as *;
+  @use '../../styles/mixins' as *;
+
+  .how-it-works {
+    padding: $spacing-5xl 0;
+  }
+
+  .how-it-works__container {
+    @include container;
+  }
+
+  .how-it-works__header {
+    text-align: center;
+    margin-bottom: $spacing-4xl;
+  }
+
+  .how-it-works__title {
+    margin-bottom: $spacing-md;
+  }
+
+  .how-it-works__subtitle {
+    max-width: 500px;
+    margin: 0 auto;
+    font-size: $font-size-lg;
+  }
+
+  .how-it-works__steps {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2xl;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .how-it-works__step {
+    display: flex;
+    gap: $spacing-xl;
+    align-items: flex-start;
+    padding: $spacing-xl;
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-xl;
+  }
+
+  .how-it-works__step-number {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .how-it-works__step-content {
+    flex: 1;
+  }
+
+  .how-it-works__step-title {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-sm;
+    color: $color-text-primary;
+  }
+
+  .how-it-works__step-description {
+    font-size: $font-size-base;
+    line-height: $line-height-relaxed;
+  }
+</style>

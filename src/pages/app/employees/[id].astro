@@ -1,0 +1,353 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Card from '../../../components/ui/Card.astro';
+import Badge from '../../../components/ui/Badge.astro';
+
+const user = Astro.locals.user!;
+
+const { id } = Astro.params;
+---
+<AppLayout title="Fiche employé" user={user}>
+  <div class="employee-page" data-employee-id={id}>
+    <a href="/app/employees" class="back-link">← Retour aux agents</a>
+
+    <div class="employee-header" id="employee-header">
+      <p class="loading">Chargement...</p>
+    </div>
+
+    <div class="employee-content">
+      <div class="employee-info">
+        <Card>
+          <h2 class="section-title">Informations</h2>
+          <div class="info-grid" id="employee-info"></div>
+        </Card>
+
+        <Card>
+          <h2 class="section-title">Équipement attribué</h2>
+          <div class="equipment-list" id="employee-equipment"></div>
+        </Card>
+      </div>
+
+      <div class="employee-assets">
+        <Card>
+          <h2 class="section-title">Assets assignés</h2>
+          <div class="assets-list" id="employee-assets"></div>
+        </Card>
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<script>
+  interface Employee {
+    id: string;
+    firstname: string;
+    lastname: string;
+    matricule: string;
+    rio: string;
+    tel_neo?: string;
+    tel_pro?: string;
+    tel_perso?: string;
+    indicatif: string;
+    affectation: string;
+    photo_key?: string;
+    active: boolean;
+    casque_sn?: string;
+    radio_motorola_sn?: string;
+    v60_invisio_sn?: string;
+    r30_invisio_sn?: string;
+    cable_invisio_sn?: string;
+    store_name?: string;
+  }
+
+  interface Asset {
+    id: string;
+    name: string;
+    category: string;
+    state: string;
+    serial_number?: string;
+  }
+
+  const page = document.querySelector('.employee-page');
+  const employeeId = page?.getAttribute('data-employee-id');
+
+  async function loadEmployee() {
+    const headerEl = document.getElementById('employee-header');
+    const infoEl = document.getElementById('employee-info');
+    const equipmentEl = document.getElementById('employee-equipment');
+    const assetsEl = document.getElementById('employee-assets');
+
+    if (!employeeId || !headerEl || !infoEl || !equipmentEl || !assetsEl) return;
+
+    try {
+      const response = await fetch(`/api/employees/${employeeId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        headerEl.innerHTML = '<p class="error">Employé non trouvé</p>';
+        return;
+      }
+
+      const emp: Employee = data.employee;
+
+      headerEl.innerHTML = `
+        <div class="employee-avatar">
+          ${emp.photo_key ? `<img src="/api/files/${emp.photo_key}" alt="${emp.firstname} ${emp.lastname}" />` : `<span>${emp.firstname[0]}${emp.lastname[0]}</span>`}
+        </div>
+        <div class="employee-main">
+          <h1 class="employee-name">${emp.firstname} ${emp.lastname}</h1>
+          <div class="employee-meta">
+            <span class="employee-indicatif">${emp.indicatif}</span>
+            <span class="employee-affectation">${emp.affectation}</span>
+            ${!emp.active ? '<span class="employee-inactive">Inactif</span>' : ''}
+          </div>
+        </div>
+      `;
+
+      infoEl.innerHTML = `
+        <div class="info-item">
+          <span class="info-label">Matricule</span>
+          <span class="info-value">${emp.matricule}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">RIO</span>
+          <span class="info-value">${emp.rio}</span>
+        </div>
+        ${emp.tel_neo ? `<div class="info-item"><span class="info-label">Tél. Néo</span><span class="info-value">${emp.tel_neo}</span></div>` : ''}
+        ${emp.tel_pro ? `<div class="info-item"><span class="info-label">Tél. Pro</span><span class="info-value">${emp.tel_pro}</span></div>` : ''}
+        ${emp.tel_perso ? `<div class="info-item"><span class="info-label">Tél. Perso</span><span class="info-value">${emp.tel_perso}</span></div>` : ''}
+      `;
+
+      const equipment = [
+        { label: 'Casque', sn: emp.casque_sn },
+        { label: 'Radio Motorola', sn: emp.radio_motorola_sn },
+        { label: 'V60 Invisio', sn: emp.v60_invisio_sn },
+        { label: 'R30 Invisio', sn: emp.r30_invisio_sn },
+        { label: 'Cable Invisio', sn: emp.cable_invisio_sn }
+      ].filter(e => e.sn);
+
+      if (equipment.length) {
+        equipmentEl.innerHTML = equipment.map(e => `
+          <div class="equipment-item">
+            <span class="equipment-label">${e.label}</span>
+            <span class="equipment-sn">${e.sn}</span>
+          </div>
+        `).join('');
+      } else {
+        equipmentEl.innerHTML = '<p class="empty">Aucun équipement attribué</p>';
+      }
+
+      const assetsResponse = await fetch(`/api/employees/${employeeId}/assets`);
+      const assetsData = await assetsResponse.json();
+
+      if (assetsData.assets?.length) {
+        assetsEl.innerHTML = assetsData.assets.map((a: Asset) => `
+          <a href="/app/assets/${a.id}" class="asset-item">
+            <span class="asset-name">${a.name}</span>
+            <span class="asset-category">${a.category}</span>
+            ${a.serial_number ? `<span class="asset-serial">${a.serial_number}</span>` : ''}
+          </a>
+        `).join('');
+      } else {
+        assetsEl.innerHTML = '<p class="empty">Aucun asset assigné</p>';
+      }
+    } catch {
+      headerEl.innerHTML = '<p class="error">Erreur de chargement</p>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadEmployee);
+</script>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .back-link {
+    display: inline-block;
+    margin-bottom: $spacing-xl;
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+
+    &:hover {
+      color: $color-accent;
+    }
+  }
+
+  .employee-header {
+    display: flex;
+    gap: $spacing-xl;
+    align-items: center;
+    margin-bottom: $spacing-2xl;
+    padding: $spacing-xl;
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-xl;
+  }
+
+  :global(.employee-avatar) {
+    width: 100px;
+    height: 100px;
+    border-radius: $radius-full;
+    background: $color-bg-tertiary;
+    @include flex-center;
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    color: $color-text-secondary;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  :global(.employee-main) {
+    flex: 1;
+  }
+
+  :global(.employee-name) {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-sm;
+  }
+
+  :global(.employee-meta) {
+    display: flex;
+    gap: $spacing-lg;
+    align-items: center;
+  }
+
+  :global(.employee-indicatif) {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-accent;
+  }
+
+  :global(.employee-affectation) {
+    color: $color-text-secondary;
+  }
+
+  :global(.employee-inactive) {
+    color: $color-error;
+    font-size: $font-size-sm;
+  }
+
+  .employee-content {
+    display: grid;
+    gap: $spacing-xl;
+
+    @include respond-to(lg) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .employee-info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .section-title {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-lg;
+    color: $color-text-primary;
+  }
+
+  :global(.info-grid) {
+    display: grid;
+    gap: $spacing-md;
+  }
+
+  :global(.info-item) {
+    display: flex;
+    justify-content: space-between;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border;
+  }
+
+  :global(.info-label) {
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  :global(.info-value) {
+    color: $color-text-primary;
+    font-family: $font-family-mono;
+  }
+
+  :global(.equipment-list) {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  :global(.equipment-item) {
+    display: flex;
+    justify-content: space-between;
+    padding: $spacing-md;
+    background: $color-bg-tertiary;
+    border-radius: $radius-md;
+  }
+
+  :global(.equipment-label) {
+    color: $color-text-secondary;
+  }
+
+  :global(.equipment-sn) {
+    color: $color-text-primary;
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+  }
+
+  :global(.assets-list) {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  :global(.asset-item) {
+    display: flex;
+    gap: $spacing-lg;
+    padding: $spacing-md;
+    background: $color-bg-tertiary;
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: $color-bg-elevated;
+    }
+  }
+
+  :global(.asset-name) {
+    flex: 1;
+    color: $color-text-primary;
+  }
+
+  :global(.asset-category) {
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  :global(.asset-serial) {
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+  }
+
+  .loading, .empty, .error {
+    color: $color-text-secondary;
+    text-align: center;
+    padding: $spacing-xl;
+  }
+
+  .error {
+    color: $color-error;
+  }
+</style>

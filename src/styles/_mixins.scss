@@ -1,0 +1,148 @@
+@use 'variables' as *;
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm) { @content; }
+  } @else if $breakpoint == md {
+    @media (min-width: $breakpoint-md) { @content; }
+  } @else if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg) { @content; }
+  } @else if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) { @content; }
+  }
+}
+
+@mixin container {
+  width: 100%;
+  max-width: $container-max;
+  margin-inline: auto;
+  padding-inline: $spacing-lg;
+
+  @include respond-to(lg) {
+    padding-inline: $spacing-2xl;
+  }
+}
+
+@mixin container-wide {
+  width: 100%;
+  max-width: $container-wide;
+  margin-inline: auto;
+  padding-inline: $spacing-lg;
+
+  @include respond-to(lg) {
+    padding-inline: $spacing-2xl;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin text-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, $color-text-secondary 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@mixin text-royal {
+  background: linear-gradient(135deg, #60A5FA 0%, #2563EB 50%, #1E40AF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.4));
+}
+
+@mixin glass-panel {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur($backdrop-blur);
+  -webkit-backdrop-filter: blur($backdrop-blur);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: $shadow-glass;
+}
+
+@mixin glass-effect {
+  @include glass-panel;
+}
+
+@mixin focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px $color-accent, 0 0 20px $color-accent-glow;
+}
+
+@mixin button-reset {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+@mixin input-reset {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin line-clamp($lines) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+@mixin hover-lift {
+  transition: transform $transition-bounce, box-shadow $transition-base;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: $shadow-xl, 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  @include reduced-motion {
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+@mixin card {
+  @include glass-panel;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  transition: border-color $transition-base, box-shadow $transition-base;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: $shadow-xl, 0 0 30px rgba(0, 0, 0, 0.3);
+  }
+}
