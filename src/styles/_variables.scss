@@ -1,31 +1,33 @@
-$color-bg-primary: #020205; // Deep Navy/Black
-$color-bg-secondary: #0A0F1C;
-$color-bg-tertiary: #111827;
-$color-bg-elevated: #1F2937;
-$color-bg-card: rgba(17, 24, 39, 0.7); // Transparent for technical glass
+$color-bg-primary: #0A0A0C;
+$color-bg-secondary: #12141A;
+$color-bg-tertiary: #1A1D24;
+$color-bg-elevated: #22262F;
+$color-bg-card: #16181F;
 
-$color-text-primary: #F3F4F6;
-$color-text-secondary: #9CA3AF;
-$color-text-tertiary: #6B7280;
-$color-text-muted: #4B5563;
+$color-text-primary: #E8E9EB;
+$color-text-secondary: #A0A4AD;
+$color-text-tertiary: #6C7280;
+$color-text-muted: #4A4F5C;
 
-// Royal Blue Accent (Electric & Deep)
-$color-accent: #2563EB;
-$color-accent-hover: #1D4ED8;
-$color-accent-glow: rgba(37, 99, 235, 0.5);
+$color-accent: #1E3A5F;
+$color-accent-hover: #2A4A73;
+$color-accent-light: #3D5A80;
 
-// Functional Colors
-$color-success: #10B981;
-$color-warning: #F59E0B;
-$color-error: #EF4444;
+$color-silver: #8A939F;
+$color-silver-light: #B8BEC7;
+$color-gold: #C9A227;
 
-$color-border: rgba(59, 130, 246, 0.15); // Subtle blue tint border
-$color-border-hover: rgba(59, 130, 246, 0.3);
-$color-border-highlight: rgba(37, 99, 235, 0.5);
+$color-success: #2D6A4F;
+$color-warning: #B8860B;
+$color-error: #9B2C2C;
 
-$font-family-base: 'Inter', system-ui, sans-serif;
-$font-family-heading: 'Outfit', 'Inter', sans-serif;
-$font-family-mono: 'JetBrains Mono', 'SF Mono', monospace; // Used more frequently in this theme
+$color-border: rgba(138, 147, 159, 0.12);
+$color-border-hover: rgba(138, 147, 159, 0.25);
+$color-border-highlight: rgba(30, 58, 95, 0.5);
+
+$font-family-base: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+$font-family-heading: 'Source Sans 3', 'Inter', sans-serif;
+$font-family-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
 $font-size-xs: 0.75rem;
 $font-size-sm: 0.875rem;
@@ -56,6 +58,7 @@ $spacing-xl: 2rem;
 $spacing-2xl: 3rem;
 $spacing-3xl: 5rem;
 $spacing-4xl: 8rem;
+$spacing-5xl: 12rem;
 
 // Sharper turns for technical look
 $radius-sm: 0.125rem;
@@ -68,10 +71,10 @@ $shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
 $shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
 $shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
 $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-$shadow-glow: 0 0 15px $color-accent-glow;
-$shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.5);
+$shadow-glow: 0 0 12px rgba(30, 58, 95, 0.3);
+$shadow-glass: 0 4px 20px rgba(0, 0, 0, 0.4);
 
-$backdrop-blur: 12px;
+$backdrop-blur: 8px;
 
 $transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 $transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);

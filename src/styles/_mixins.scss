@@ -54,11 +54,17 @@
 }
 
 @mixin text-royal {
-  background: linear-gradient(135deg, #60A5FA 0%, #2563EB 50%, #1E40AF 100%);
+  background: linear-gradient(135deg, $color-silver-light 0%, $color-silver 50%, $color-accent-light 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.4));
+}
+
+@mixin text-noble {
+  background: linear-gradient(135deg, $color-silver-light 0%, $color-silver 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 @mixin glass-panel {
@@ -75,7 +81,7 @@
 
 @mixin focus-ring {
   outline: none;
-  box-shadow: 0 0 0 2px $color-accent, 0 0 20px $color-accent-glow;
+  box-shadow: 0 0 0 2px $color-accent-light, 0 0 15px rgba(30, 58, 95, 0.3);
 }
 
 @mixin button-reset {

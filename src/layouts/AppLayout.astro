@@ -31,7 +31,11 @@ function isActive(href: string, exact = false) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0A0A0C">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>{title} | Bastion</title>
   <ViewTransitions />
 </head>
@@ -39,28 +43,44 @@ function isActive(href: string, exact = false) {
   <div class="app-layout">
     <aside class="app-sidebar">
       <div class="app-sidebar__header">
-        <a href="/app" class="app-sidebar__logo">Bastion</a>
+        <a href="/app" class="app-sidebar__logo">
+          <svg class="app-sidebar__logo-icon" viewBox="0 0 32 32" fill="none">
+            <path d="M16 2L22 8V10H24V8H26V28H6V8H8V10H10V8L16 2Z" fill="#2A4A73"/>
+            <path d="M6 8h3v4H6zM23 8h3v4h-3z" fill="#1E3A5F"/>
+            <path d="M10 10h12v18H10z" fill="#3D5A80"/>
+            <rect x="6" y="5" width="3" height="3" fill="#8A939F"/>
+            <rect x="23" y="5" width="3" height="3" fill="#8A939F"/>
+            <path d="M13 28v-7a3 3 0 0 1 6 0v7" fill="#0A0A0C"/>
+            <rect x="12" y="14" width="3" height="4" rx="1.5" fill="#0A0A0C"/>
+            <rect x="17" y="14" width="3" height="4" rx="1.5" fill="#0A0A0C"/>
+            <path d="M16 2v4" stroke="#B8BEC7" stroke-width="2"/>
+            <path d="M14 4h4" stroke="#B8BEC7" stroke-width="1.5"/>
+          </svg>
+          <span class="app-sidebar__logo-text">Bastion</span>
+        </a>
       </div>
       <nav class="app-sidebar__nav">
         {navItems.map(item => {
           if (item.role === 'ADMIN' && user.role !== 'ADMIN') return null;
           if (item.role === 'MANAGER' && user.role === 'EMPLOYEE') return null;
-          
+
           const active = isActive(item.href, item.exact);
           return (
             <a href={item.href} class:list={["app-sidebar__link", { active }]}>
-              {active && (
-                <div class="active-pill-bg" transition:name="sidebar-pill"></div>
-              )}
-              <span class="link-text">{item.label}</span>
+              {item.label}
             </a>
           );
         })}
       </nav>
       <div class="app-sidebar__footer">
         <div class="app-sidebar__user">
-          <span class="app-sidebar__user-email">{user.email}</span>
-          <span class="app-sidebar__user-role">{user.role}</span>
+          <div class="app-sidebar__user-avatar">
+            {user.email.charAt(0).toUpperCase()}
+          </div>
+          <div class="app-sidebar__user-info">
+            <span class="app-sidebar__user-email">{user.email}</span>
+            <span class="app-sidebar__user-role">{user.role.toLowerCase()}</span>
+          </div>
         </div>
       </div>
     </aside>
@@ -83,44 +103,53 @@ function isActive(href: string, exact = false) {
   .app-layout {
     display: flex;
     min-height: 100vh;
-    padding: $spacing-md;
-    gap: $spacing-md;
   }
 
   .app-sidebar {
-    width: 280px;
-    @include glass-panel;
-    border-radius: $radius-xl;
+    width: 260px;
+    background: linear-gradient(180deg, rgba(18, 20, 26, 0.95) 0%, rgba(10, 10, 12, 0.98) 100%);
+    border-right: 1px solid rgba(138, 147, 159, 0.08);
     display: flex;
     flex-direction: column;
     position: sticky;
-    top: $spacing-md;
-    height: calc(100vh - #{$spacing-md * 2});
+    top: 0;
+    height: 100vh;
     z-index: $z-sticky;
-    transition: all $transition-base;
   }
 
   .app-sidebar__header {
-    padding: $spacing-xl $spacing-lg;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: $spacing-xl $spacing-xl;
+    margin-bottom: $spacing-sm;
   }
 
   .app-sidebar__logo {
-    font-family: $font-family-heading;
-    font-size: $font-size-2xl;
-    font-weight: $font-weight-bold;
-    @include text-royal; // Blue gradation
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
     text-decoration: none;
-    letter-spacing: -0.02em;
+  }
+
+  .app-sidebar__logo-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .app-sidebar__logo-text {
+    font-family: $font-family-heading;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
   }
 
   .app-sidebar__nav {
     flex: 1;
-    padding: $spacing-lg;
+    padding: 0 $spacing-md;
     display: flex;
     flex-direction: column;
-    gap: 4px; // Spacing for pills
+    gap: 2px;
     overflow-y: auto;
   }
 
@@ -128,92 +157,84 @@ function isActive(href: string, exact = false) {
     display: flex;
     align-items: center;
     padding: $spacing-md $spacing-lg;
-    color: $color-text-secondary;
+    color: $color-text-tertiary;
     text-decoration: none;
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
-    transition: color $transition-base; // Only transition color, bg handled by element
-    border-radius: 9999px;
-    position: relative; // Context for absolute bg
-    isolate: isolate; // Ensure z-index works
+    letter-spacing: 0.01em;
+    transition: all $transition-fast;
+    border-radius: $radius-md;
+    position: relative;
 
     &:hover {
       color: $color-text-primary;
-      // Subtle background for hover (not the active pill)
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 9999px;
-        z-index: -2;
-      }
+      background: rgba(255, 255, 255, 0.03);
     }
 
     &.active {
-      color: #fff;
-      font-weight: $font-weight-semibold;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      color: $color-text-primary;
+      background: rgba(138, 147, 159, 0.08);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        background: linear-gradient(180deg, $color-silver-light 0%, $color-silver 100%);
+        border-radius: 0 2px 2px 0;
+      }
     }
   }
 
-  // The Sliding "Water Drop" Background
-  .active-pill-bg {
-    position: absolute;
-    inset: 0;
-    border-radius: 9999px;
-    z-index: -1; // Behind text
-    
-    // Enhanced "Water Drop" / Liquid Glass
-    background: linear-gradient(
-      180deg, 
-      rgba(255, 255, 255, 0.2) 0%, 
-      rgba(37, 99, 235, 0.5) 100%
-    );
-    backdrop-filter: blur(12px) saturate(150%); // Heavier blur + saturation
-    
-    box-shadow: 
-      // Sharp Top Edge (Surface Tension)
-      inset 0 1px 1px rgba(255, 255, 255, 0.9),
-      // Soft Top Highlight (Volume)
-      inset 0 2px 5px rgba(255, 255, 255, 0.3),
-      // Bottom Inner Shadow (Depth)
-      inset 0 -2px 5px rgba(0, 0, 0, 0.1),
-      // Inner Blue Glow (Caustics)
-      inset 0 0 15px rgba(37, 99, 235, 0.4),
-      // Deep Drop Shadow
-      0 5px 15px rgba(0, 0, 0, 0.5),
-      // Outer Ambient Glow
-      0 0 20px rgba(37, 99, 235, 0.3);
-      
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); // Fainter bottom border
-  }
-  
-  .link-text {
-    position: relative;
-    z-index: 2;
+  .app-sidebar__section-label {
+    padding: $spacing-xl $spacing-lg $spacing-sm;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: $color-text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
 
   .app-sidebar__footer {
-    padding: $spacing-lg;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom-left-radius: $radius-xl;
-    border-bottom-right-radius: $radius-xl;
+    padding: $spacing-lg $spacing-md;
+    margin-top: auto;
+    border-top: 1px solid rgba(138, 147, 159, 0.06);
   }
 
   .app-sidebar__user {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: $spacing-sm;
-    border-radius: $radius-lg;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    border-radius: $radius-md;
     transition: background $transition-fast;
+    cursor: pointer;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.03);
     }
+  }
+
+  .app-sidebar__user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $color-accent 0%, $color-accent-light 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .app-sidebar__user-info {
+    flex: 1;
+    min-width: 0;
   }
 
   .app-sidebar__user-email {
@@ -225,17 +246,17 @@ function isActive(href: string, exact = false) {
 
   .app-sidebar__user-role {
     font-size: $font-size-xs;
-    color: $color-accent;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: $font-weight-bold;
+    color: $color-text-tertiary;
+    text-transform: capitalize;
+    font-weight: $font-weight-regular;
+    margin-top: 2px;
   }
 
   .app-main {
     flex: 1;
     min-width: 0;
-    border-radius: $radius-xl;
-    padding: $spacing-xl;
+    padding: $spacing-2xl;
     position: relative;
+    background: $color-bg-primary;
   }
 </style>
