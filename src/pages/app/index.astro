@@ -79,11 +79,23 @@ const alertSeverityLabels: Record<string, string> = {
   LOW: 'Basse'
 };
 
-const alertTypeIcons: Record<string, string> = {
-  EXPIRATION: '⏰',
-  MAINTENANCE: '🔧',
-  LOW_STOCK: '📦',
-  MISSION_UPCOMING: '📋'
+const alertTypeIconPaths: Record<string, { viewBox: string; paths: string }> = {
+  EXPIRATION: {
+    viewBox: '0 0 24 24',
+    paths: '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+  },
+  MAINTENANCE: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+  },
+  LOW_STOCK: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
+  },
+  MISSION_UPCOMING: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="2" fill="none"/><rect x="8" y="2" width="8" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 12h6M9 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+  }
 };
 
 function formatTime(date: Date) {
@@ -117,19 +129,35 @@ function formatDate(date: Date) {
 
     {criticalAlerts.length > 0 && (
       <div class="alerts-banner">
-        <div class="alerts-banner__icon">⚠️</div>
+        <div class="alerts-banner__icon">
+          <svg viewBox="0 0 24 24" class="alerts-banner__icon-svg">
+            <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
         <div class="alerts-banner__content">
           <span class="alerts-banner__count">{criticalAlerts.length} alerte{criticalAlerts.length > 1 ? 's' : ''} prioritaire{criticalAlerts.length > 1 ? 's' : ''}</span>
           <span class="alerts-banner__preview">{criticalAlerts[0].message}</span>
         </div>
-        <a href="/app/alerts" class="alerts-banner__link">Voir tout →</a>
+        <a href="/app/alerts" class="alerts-banner__link">
+          Voir tout
+          <svg viewBox="0 0 24 24" class="alerts-banner__arrow">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </a>
       </div>
     )}
 
     <div class="stats-grid">
       <div class="stat-card stat-card--primary">
         <div class="stat-card__header">
-          <span class="stat-card__icon">👥</span>
+          <span class="stat-card__icon">
+            <svg viewBox="0 0 24 24" class="stat-card__icon-svg">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </span>
           <span class="stat-card__label">Personnel actif</span>
         </div>
         <div class="stat-card__value">{activeEmployees}</div>
@@ -138,7 +166,11 @@ function formatDate(date: Date) {
 
       <div class="stat-card">
         <div class="stat-card__header">
-          <span class="stat-card__icon">🔫</span>
+          <span class="stat-card__icon">
+            <svg viewBox="0 0 24 24" class="stat-card__icon-svg">
+              <path d="M2 12h6l2-9 4 18 2-9h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </span>
           <span class="stat-card__label">Armurerie</span>
         </div>
         <div class="stat-card__value">{weaponStats.available}<span class="stat-card__total">/{weaponStats.total}</span></div>
@@ -150,7 +182,14 @@ function formatDate(date: Date) {
 
       <div class="stat-card">
         <div class="stat-card__header">
-          <span class="stat-card__icon">🚗</span>
+          <span class="stat-card__icon">
+            <svg viewBox="0 0 24 24" class="stat-card__icon-svg">
+              <rect x="1" y="3" width="15" height="13" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <path d="M16 8h4l3 5v5h-7V8z" stroke="currentColor" stroke-width="2" fill="none"/>
+              <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2" fill="none"/>
+              <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+          </span>
           <span class="stat-card__label">Véhicules</span>
         </div>
         <div class="stat-card__value">{vehicleStats.available}<span class="stat-card__total">/{vehicleStats.total}</span></div>
@@ -162,7 +201,13 @@ function formatDate(date: Date) {
 
       <div class="stat-card">
         <div class="stat-card__header">
-          <span class="stat-card__icon">📋</span>
+          <span class="stat-card__icon">
+            <svg viewBox="0 0 24 24" class="stat-card__icon-svg">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+              <path d="M9 12h6M9 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
           <span class="stat-card__label">Missions</span>
         </div>
         <div class="stat-card__value">{missionStats.inProgress}</div>
@@ -229,7 +274,9 @@ function formatDate(date: Date) {
           <div class="alerts-list">
             {alerts.slice(0, 5).map(alert => (
               <div class="alert-item" data-severity={alert.severity}>
-                <span class="alert-item__icon">{alertTypeIcons[alert.type]}</span>
+                <span class="alert-item__icon">
+                  <svg viewBox={alertTypeIconPaths[alert.type].viewBox} class="alert-item__icon-svg" set:html={alertTypeIconPaths[alert.type].paths} />
+                </span>
                 <div class="alert-item__content">
                   <span class="alert-item__message">{alert.message}</span>
                   <span class="alert-item__severity">{alertSeverityLabels[alert.severity]}</span>
@@ -273,19 +320,42 @@ function formatDate(date: Date) {
       <h2 class="quick-actions__title">Actions rapides</h2>
       <div class="actions-grid">
         <a href="/app/missions/new" class="action-card">
-          <span class="action-card__icon">📋</span>
+          <span class="action-card__icon">
+            <svg viewBox="0 0 24 24" class="action-card__icon-svg">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+              <path d="M12 11v6M9 14h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
           <span class="action-card__label">Nouvelle mission</span>
         </a>
         <a href="/app/armory/checkout" class="action-card">
-          <span class="action-card__icon">🔫</span>
+          <span class="action-card__icon">
+            <svg viewBox="0 0 24 24" class="action-card__icon-svg">
+              <path d="M2 12h6l2-9 4 18 2-9h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </span>
           <span class="action-card__label">Sortie arme</span>
         </a>
         <a href="/app/vehicles" class="action-card">
-          <span class="action-card__icon">🚗</span>
+          <span class="action-card__icon">
+            <svg viewBox="0 0 24 24" class="action-card__icon-svg">
+              <rect x="1" y="3" width="15" height="13" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <path d="M16 8h4l3 5v5h-7V8z" stroke="currentColor" stroke-width="2" fill="none"/>
+              <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2" fill="none"/>
+              <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+          </span>
           <span class="action-card__label">Réserver véhicule</span>
         </a>
         <a href="/app/employees" class="action-card">
-          <span class="action-card__icon">👥</span>
+          <span class="action-card__icon">
+            <svg viewBox="0 0 24 24" class="action-card__icon-svg">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </span>
           <span class="action-card__label">Gérer effectifs</span>
         </a>
       </div>
@@ -380,7 +450,15 @@ setInterval(updateTime, 1000);
   }
 
   .alerts-banner__icon {
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-error;
+  }
+
+  .alerts-banner__icon-svg {
+    width: 24px;
+    height: 24px;
   }
 
   .alerts-banner__content {
@@ -405,9 +483,22 @@ setInterval(updateTime, 1000);
     color: $color-error;
     text-decoration: none;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
 
     &:hover {
-      text-decoration: underline;
+      color: lighten($color-error, 10%);
+    }
+  }
+
+  .alerts-banner__arrow {
+    width: 14px;
+    height: 14px;
+    transition: transform $transition-fast;
+
+    .alerts-banner__link:hover & {
+      transform: translateX(3px);
     }
   }
 
@@ -442,7 +533,15 @@ setInterval(updateTime, 1000);
   }
 
   .stat-card__icon {
-    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text-secondary;
+  }
+
+  .stat-card__icon-svg {
+    width: 20px;
+    height: 20px;
   }
 
   .stat-card__label {
@@ -663,8 +762,16 @@ setInterval(updateTime, 1000);
   }
 
   .alert-item__icon {
-    font-size: 1rem;
-    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text-secondary;
+    flex-shrink: 0;
+  }
+
+  .alert-item__icon-svg {
+    width: 16px;
+    height: 16px;
   }
 
   .alert-item__content {
@@ -775,7 +882,15 @@ setInterval(updateTime, 1000);
   }
 
   .action-card__icon {
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-accent;
+  }
+
+  .action-card__icon-svg {
+    width: 28px;
+    height: 28px;
   }
 
   .action-card__label {

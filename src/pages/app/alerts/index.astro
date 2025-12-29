@@ -6,7 +6,12 @@ import Badge from '../../../components/ui/Badge.astro';
 import { getAlerts } from '../../../lib/db';
 
 const user = Astro.locals.user!;
-const alerts = getAlerts({ dismissed: false });
+const allAlerts = getAlerts({ dismissed: false });
+
+const criticalAlerts = allAlerts.filter(a => a.severity === 'CRITICAL');
+const highAlerts = allAlerts.filter(a => a.severity === 'HIGH');
+const mediumAlerts = allAlerts.filter(a => a.severity === 'MEDIUM');
+const lowAlerts = allAlerts.filter(a => a.severity === 'LOW');
 
 const severityLabels: Record<string, string> = {
   CRITICAL: 'Critique',
@@ -15,66 +20,229 @@ const severityLabels: Record<string, string> = {
   LOW: 'Basse'
 };
 
-const severityVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
-  CRITICAL: 'error',
-  HIGH: 'error',
-  MEDIUM: 'warning',
-  LOW: 'default'
-};
-
 const typeLabels: Record<string, string> = {
   EXPIRATION: 'Péremption',
   MAINTENANCE: 'Maintenance',
   LOW_STOCK: 'Stock bas',
-  MISSION_UPCOMING: 'Mission'
+  MISSION_UPCOMING: 'Mission à venir'
 };
 
-const typeIcons: Record<string, string> = {
-  EXPIRATION: '⏰',
-  MAINTENANCE: '🔧',
-  LOW_STOCK: '📦',
-  MISSION_UPCOMING: '📋'
+const typeIconPaths: Record<string, { viewBox: string; paths: string }> = {
+  EXPIRATION: {
+    viewBox: '0 0 24 24',
+    paths: '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+  },
+  MAINTENANCE: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+  },
+  LOW_STOCK: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
+  },
+  MISSION_UPCOMING: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="2" fill="none"/><rect x="8" y="2" width="8" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 12h6M9 16h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+  }
+};
+
+const resourceLinks: Record<string, string> = {
+  WEAPON: '/app/armory',
+  VEHICLE: '/app/vehicles',
+  ASSET: '/app/assets',
+  MISSION: '/app/missions'
 };
 
 function formatDate(date: Date) {
+  const now = new Date();
+  const target = new Date(date);
+  const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return `Il y a ${Math.abs(diffDays)} jour${Math.abs(diffDays) > 1 ? 's' : ''}`;
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return 'Demain';
+  return `Dans ${diffDays} jours`;
+}
+
+function formatFullDate(date: Date) {
   return new Intl.DateTimeFormat('fr-FR', {
     day: 'numeric',
-    month: 'short'
+    month: 'long',
+    year: 'numeric'
   }).format(new Date(date));
 }
 ---
 <AppLayout title="Alertes" user={user}>
   <div class="alerts-page">
     <div class="page-header">
-      <h1 class="page-title">Alertes</h1>
-      <p class="page-subtitle">{alerts.length} alerte{alerts.length > 1 ? 's' : ''} active{alerts.length > 1 ? 's' : ''}</p>
+      <div class="header-content">
+        <h1 class="page-title">Centre d'alertes</h1>
+        <p class="page-subtitle">Surveillance des ressources et échéances</p>
+      </div>
+      {allAlerts.length > 0 && (
+        <button class="btn-dismiss-all">Tout marquer comme lu</button>
+      )}
     </div>
 
-    {alerts.length === 0 ? (
+    <div class="severity-bar">
+      <div class="severity-item severity-item--critical" data-count={criticalAlerts.length}>
+        <span class="severity-item__count">{criticalAlerts.length}</span>
+        <span class="severity-item__label">Critique</span>
+      </div>
+      <div class="severity-item severity-item--high" data-count={highAlerts.length}>
+        <span class="severity-item__count">{highAlerts.length}</span>
+        <span class="severity-item__label">Haute</span>
+      </div>
+      <div class="severity-item severity-item--medium" data-count={mediumAlerts.length}>
+        <span class="severity-item__count">{mediumAlerts.length}</span>
+        <span class="severity-item__label">Moyenne</span>
+      </div>
+      <div class="severity-item severity-item--low" data-count={lowAlerts.length}>
+        <span class="severity-item__count">{lowAlerts.length}</span>
+        <span class="severity-item__label">Basse</span>
+      </div>
+    </div>
+
+    {allAlerts.length === 0 ? (
       <div class="empty-state">
-        <span class="empty-state__icon">✓</span>
-        <p class="empty-state__text">Aucune alerte active</p>
+        <div class="empty-state__icon-wrapper">
+          <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h2 class="empty-state__title">Tout est en ordre</h2>
+        <p class="empty-state__text">Aucune alerte active pour le moment</p>
       </div>
     ) : (
-      <div class="alerts-list">
-        {alerts.map(alert => (
-          <div class="alert-card" data-severity={alert.severity}>
-            <div class="alert-card__icon">{typeIcons[alert.type]}</div>
-            <div class="alert-card__content">
-              <div class="alert-card__header">
-                <span class="alert-card__type">{typeLabels[alert.type]}</span>
-                <Badge variant={severityVariants[alert.severity]} size="sm">
-                  {severityLabels[alert.severity]}
-                </Badge>
-              </div>
-              <p class="alert-card__message">{alert.message}</p>
-              {alert.due_date && (
-                <span class="alert-card__date">Échéance : {formatDate(alert.due_date)}</span>
-              )}
+      <div class="alerts-container">
+        {(criticalAlerts.length > 0 || highAlerts.length > 0) && (
+          <section class="alerts-section alerts-section--urgent">
+            <div class="section-header">
+              <div class="section-header__indicator"></div>
+              <h2 class="section-header__title">Priorité haute</h2>
+              <span class="section-header__count">{criticalAlerts.length + highAlerts.length}</span>
             </div>
-            <button class="alert-card__dismiss" title="Ignorer">×</button>
-          </div>
-        ))}
+            <div class="alerts-grid">
+              {[...criticalAlerts, ...highAlerts].map(alert => (
+                <div class="alert-card alert-card--urgent">
+                  <div class="alert-card__severity-indicator"></div>
+                  <div class="alert-card__icon">
+                    <svg viewBox={typeIconPaths[alert.type].viewBox} class="alert-card__icon-svg" set:html={typeIconPaths[alert.type].paths} />
+                  </div>
+                  <div class="alert-card__body">
+                    <div class="alert-card__header">
+                      <span class="alert-card__type">{typeLabels[alert.type]}</span>
+                      <span class={`alert-card__severity alert-card__severity--${alert.severity.toLowerCase()}`}>
+                        {severityLabels[alert.severity]}
+                      </span>
+                    </div>
+                    <p class="alert-card__message">{alert.message}</p>
+                    <div class="alert-card__footer">
+                      {alert.due_date && (
+                        <span class="alert-card__due" title={formatFullDate(alert.due_date)}>
+                          {formatDate(alert.due_date)}
+                        </span>
+                      )}
+                      <a href={`${resourceLinks[alert.resource_type]}/${alert.resource_id}`} class="alert-card__link">
+                        Voir détails
+                        <svg viewBox="0 0 24 24" class="alert-card__arrow">
+                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                  <button class="alert-card__dismiss" title="Ignorer cette alerte">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {mediumAlerts.length > 0 && (
+          <section class="alerts-section alerts-section--medium">
+            <div class="section-header">
+              <div class="section-header__indicator"></div>
+              <h2 class="section-header__title">Priorité moyenne</h2>
+              <span class="section-header__count">{mediumAlerts.length}</span>
+            </div>
+            <div class="alerts-grid">
+              {mediumAlerts.map(alert => (
+                <div class="alert-card alert-card--medium">
+                  <div class="alert-card__severity-indicator"></div>
+                  <div class="alert-card__icon">
+                    <svg viewBox={typeIconPaths[alert.type].viewBox} class="alert-card__icon-svg" set:html={typeIconPaths[alert.type].paths} />
+                  </div>
+                  <div class="alert-card__body">
+                    <div class="alert-card__header">
+                      <span class="alert-card__type">{typeLabels[alert.type]}</span>
+                    </div>
+                    <p class="alert-card__message">{alert.message}</p>
+                    <div class="alert-card__footer">
+                      {alert.due_date && (
+                        <span class="alert-card__due" title={formatFullDate(alert.due_date)}>
+                          {formatDate(alert.due_date)}
+                        </span>
+                      )}
+                      <a href={`${resourceLinks[alert.resource_type]}/${alert.resource_id}`} class="alert-card__link">
+                        Voir détails
+                        <svg viewBox="0 0 24 24" class="alert-card__arrow">
+                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                  <button class="alert-card__dismiss" title="Ignorer cette alerte">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {lowAlerts.length > 0 && (
+          <section class="alerts-section alerts-section--low">
+            <div class="section-header">
+              <div class="section-header__indicator"></div>
+              <h2 class="section-header__title">Informations</h2>
+              <span class="section-header__count">{lowAlerts.length}</span>
+            </div>
+            <div class="alerts-list-compact">
+              {lowAlerts.map(alert => (
+                <div class="alert-row">
+                  <span class="alert-row__icon">
+                    <svg viewBox={typeIconPaths[alert.type].viewBox} class="alert-row__icon-svg" set:html={typeIconPaths[alert.type].paths} />
+                  </span>
+                  <span class="alert-row__message">{alert.message}</span>
+                  {alert.due_date && (
+                    <span class="alert-row__due">{formatDate(alert.due_date)}</span>
+                  )}
+                  <a href={`${resourceLinks[alert.resource_type]}/${alert.resource_id}`} class="alert-row__link">
+                    Voir
+                    <svg viewBox="0 0 24 24" class="alert-row__arrow">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                  </a>
+                  <button class="alert-row__dismiss" title="Ignorer">
+                    <svg viewBox="0 0 24 24" class="alert-row__dismiss-svg">
+                      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     )}
   </div>
@@ -85,16 +253,19 @@ function formatDate(date: Date) {
   @use '../../../styles/mixins' as *;
 
   .alerts-page {
-    max-width: 800px;
+    max-width: 1000px;
   }
 
   .page-header {
-    margin-bottom: $spacing-2xl;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-xl;
   }
 
   .page-title {
     font-size: $font-size-3xl;
-    font-weight: $font-weight-semibold;
+    font-weight: $font-weight-bold;
     margin-bottom: $spacing-xs;
   }
 
@@ -102,58 +273,222 @@ function formatDate(date: Date) {
     color: $color-text-secondary;
   }
 
+  .btn-dismiss-all {
+    padding: $spacing-sm $spacing-lg;
+    background: transparent;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: $color-text-primary;
+    }
+  }
+
+  .severity-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-md;
+    margin-bottom: $spacing-2xl;
+  }
+
+  .severity-item {
+    @include glass-panel;
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+    text-align: center;
+    transition: all $transition-fast;
+    cursor: default;
+
+    &[data-count="0"] {
+      opacity: 0.5;
+    }
+
+    &--critical {
+      border-top: 3px solid $color-error;
+      &[data-count]:not([data-count="0"]) {
+        background: rgba($color-error, 0.05);
+      }
+    }
+
+    &--high {
+      border-top: 3px solid #ff6b6b;
+      &[data-count]:not([data-count="0"]) {
+        background: rgba(#ff6b6b, 0.05);
+      }
+    }
+
+    &--medium {
+      border-top: 3px solid $color-warning;
+      &[data-count]:not([data-count="0"]) {
+        background: rgba($color-warning, 0.05);
+      }
+    }
+
+    &--low {
+      border-top: 3px solid $color-accent;
+    }
+  }
+
+  .severity-item__count {
+    display: block;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-xs;
+
+    .severity-item--critical & { color: $color-error; }
+    .severity-item--high & { color: #ff6b6b; }
+    .severity-item--medium & { color: $color-warning; }
+    .severity-item--low & { color: $color-accent; }
+
+    .severity-item[data-count="0"] & {
+      color: $color-text-tertiary;
+    }
+  }
+
+  .severity-item__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
   .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    @include glass-panel;
+    border-radius: $radius-lg;
     padding: $spacing-4xl;
     text-align: center;
+    border-color: rgba($color-success, 0.2);
+  }
+
+  .empty-state__icon-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto $spacing-xl;
+    background: rgba($color-success, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .empty-state__icon {
-    font-size: 3rem;
-    margin-bottom: $spacing-lg;
-    opacity: 0.5;
+    width: 40px;
+    height: 40px;
+    color: $color-success;
+  }
+
+  .empty-state__title {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-sm;
+    color: $color-success;
   }
 
   .empty-state__text {
+    color: $color-text-secondary;
+  }
+
+  .alerts-container {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2xl;
+  }
+
+  .alerts-section {
+    &--urgent .section-header__indicator { background: $color-error; }
+    &--medium .section-header__indicator { background: $color-warning; }
+    &--low .section-header__indicator { background: $color-accent; }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
+
+  .section-header__indicator {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+  }
+
+  .section-header__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+  }
+
+  .section-header__count {
+    padding: $spacing-xs $spacing-sm;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: $radius-full;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
     color: $color-text-tertiary;
   }
 
-  .alerts-list {
+  .alerts-grid {
     display: flex;
     flex-direction: column;
     gap: $spacing-md;
   }
 
   .alert-card {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: $spacing-lg;
-    align-items: flex-start;
-    background: $color-bg-card;
-    border: 1px solid $color-border;
+    @include glass-panel;
     border-radius: $radius-lg;
     padding: $spacing-lg;
-    transition: border-color $transition-fast;
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    gap: $spacing-lg;
+    align-items: flex-start;
+    position: relative;
+    overflow: hidden;
 
-    &[data-severity="CRITICAL"],
-    &[data-severity="HIGH"] {
-      border-left: 3px solid $color-error;
+    &--urgent {
+      border-color: rgba($color-error, 0.3);
+
+      .alert-card__severity-indicator {
+        background: linear-gradient(180deg, $color-error 0%, transparent 100%);
+      }
     }
 
-    &[data-severity="MEDIUM"] {
-      border-left: 3px solid $color-warning;
+    &--medium {
+      border-color: rgba($color-warning, 0.2);
+
+      .alert-card__severity-indicator {
+        background: linear-gradient(180deg, $color-warning 0%, transparent 100%);
+      }
     }
+  }
+
+  .alert-card__severity-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 3px;
+    height: 100%;
   }
 
   .alert-card__icon {
-    font-size: 1.5rem;
-    line-height: 1;
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text-secondary;
   }
 
-  .alert-card__content {
+  .alert-card__icon-svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .alert-card__body {
     display: flex;
     flex-direction: column;
     gap: $spacing-sm;
@@ -170,7 +505,24 @@ function formatDate(date: Date) {
     font-weight: $font-weight-semibold;
     color: $color-text-tertiary;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
+  }
+
+  .alert-card__severity {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    padding: 2px $spacing-sm;
+    border-radius: $radius-sm;
+
+    &--critical {
+      background: rgba($color-error, 0.15);
+      color: $color-error;
+    }
+
+    &--high {
+      background: rgba(#ff6b6b, 0.15);
+      color: #ff6b6b;
+    }
   }
 
   .alert-card__message {
@@ -179,25 +531,168 @@ function formatDate(date: Date) {
     line-height: 1.5;
   }
 
-  .alert-card__date {
+  .alert-card__footer {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    margin-top: $spacing-xs;
+  }
+
+  .alert-card__due {
     font-size: $font-size-sm;
     color: $color-text-tertiary;
+    font-family: $font-family-mono;
+
+    .alert-card--urgent & {
+      color: $color-error;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  .alert-card__link {
+    font-size: $font-size-sm;
+    color: $color-accent;
+    text-decoration: none;
+    transition: color $transition-fast;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    &:hover {
+      color: $color-accent-light;
+    }
+  }
+
+  .alert-card__arrow {
+    width: 14px;
+    height: 14px;
+    transition: transform $transition-fast;
+
+    .alert-card__link:hover & {
+      transform: translateX(3px);
+    }
   }
 
   .alert-card__dismiss {
-    background: none;
-    border: none;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
     color: $color-text-tertiary;
-    font-size: 1.5rem;
-    line-height: 1;
     cursor: pointer;
-    padding: $spacing-xs;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all $transition-fast;
+    flex-shrink: 0;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    &:hover {
+      background: rgba($color-error, 0.1);
+      border-color: rgba($color-error, 0.3);
+      color: $color-error;
+    }
+  }
+
+  .alerts-list-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: $color-border;
+    border-radius: $radius-lg;
+    overflow: hidden;
+  }
+
+  .alert-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md $spacing-lg;
+    background: $color-bg-card;
+
+    &:first-child {
+      border-radius: $radius-lg $radius-lg 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 $radius-lg $radius-lg;
+    }
+  }
+
+  .alert-row__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text-tertiary;
+    flex-shrink: 0;
+  }
+
+  .alert-row__icon-svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .alert-row__message {
+    flex: 1;
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+  }
+
+  .alert-row__due {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .alert-row__link {
+    font-size: $font-size-sm;
+    color: $color-accent;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    &:hover {
+      color: $color-accent-light;
+    }
+  }
+
+  .alert-row__arrow {
+    width: 12px;
+    height: 12px;
+    transition: transform $transition-fast;
+
+    .alert-row__link:hover & {
+      transform: translateX(2px);
+    }
+  }
+
+  .alert-row__dismiss {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    color: $color-text-muted;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: $radius-sm;
     transition: all $transition-fast;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: $color-text-primary;
+      background: rgba($color-error, 0.1);
+      color: $color-error;
     }
+  }
+
+  .alert-row__dismiss-svg {
+    width: 14px;
+    height: 14px;
   }
 </style>

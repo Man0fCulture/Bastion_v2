@@ -1,0 +1,705 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getMission, getWeapons, getVehicles } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+const mission = getMission(id!);
+
+if (!mission) {
+  return Astro.redirect('/app/missions');
+}
+
+const allWeapons = getWeapons();
+const allVehicles = getVehicles();
+
+const missionWeapons = allWeapons.filter(w => w.state === 'CHECKED_OUT');
+const missionVehicles = allVehicles.filter(v => v.state === 'IN_USE');
+
+const statusLabels: Record<string, string> = {
+  PLANNED: 'Planifiée',
+  BRIEFING: 'Briefing',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminée',
+  CANCELLED: 'Annulée'
+};
+
+const statusVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  PLANNED: 'default',
+  BRIEFING: 'warning',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'error'
+};
+
+const typeLabels: Record<string, string> = {
+  INTERVENTION: 'Intervention',
+  SURVEILLANCE: 'Surveillance',
+  ESCORT: 'Escorte',
+  TRAINING: 'Entraînement',
+  PATROL: 'Patrouille'
+};
+
+const typeIconPaths: Record<string, { viewBox: string; paths: string }> = {
+  INTERVENTION: {
+    viewBox: '0 0 24 24',
+    paths: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+  },
+  SURVEILLANCE: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>'
+  },
+  ESCORT: {
+    viewBox: '0 0 24 24',
+    paths: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" fill="none"/>'
+  },
+  TRAINING: {
+    viewBox: '0 0 24 24',
+    paths: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/>'
+  },
+  PATROL: {
+    viewBox: '0 0 24 24',
+    paths: '<circle cx="12" cy="8" r="5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M3 21v-2a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v2" stroke="currentColor" stroke-width="2" fill="none"/>'
+  }
+};
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(date));
+}
+
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
+---
+<AppLayout title={mission.name} user={user}>
+  <div class="mission-detail">
+    <div class="page-header">
+      <a href="/app/missions" class="back-link">
+        <svg viewBox="0 0 24 24" class="back-link__icon">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        Retour aux missions
+      </a>
+    </div>
+
+    <div class="mission-hero">
+      <div class="mission-hero__icon">
+          <svg viewBox={typeIconPaths[mission.type].viewBox} class="mission-hero__icon-svg" set:html={typeIconPaths[mission.type].paths} />
+        </div>
+      <div class="mission-hero__content">
+        <div class="mission-hero__meta">
+          <span class="mission-hero__type">{typeLabels[mission.type]}</span>
+          <Badge variant={statusVariants[mission.status]} size="sm">
+            {statusLabels[mission.status]}
+          </Badge>
+        </div>
+        <h1 class="mission-hero__title">{mission.name}</h1>
+        {mission.description && (
+          <p class="mission-hero__description">{mission.description}</p>
+        )}
+      </div>
+      <div class="mission-hero__actions">
+        {mission.status === 'PLANNED' && (
+          <button class="action-btn action-btn--primary">Démarrer le briefing</button>
+        )}
+        {mission.status === 'BRIEFING' && (
+          <button class="action-btn action-btn--primary">Lancer la mission</button>
+        )}
+        {mission.status === 'IN_PROGRESS' && (
+          <button class="action-btn action-btn--success">Terminer la mission</button>
+        )}
+        <button class="action-btn">Modifier</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="main-section">
+        <div class="detail-card">
+          <h2 class="detail-card__title">Équipe</h2>
+          {mission.assignments && mission.assignments.length > 0 ? (
+            <div class="team-list">
+              {mission.assignments.map(assignment => (
+                <a href={`/app/employees/${assignment.employee_id}`} class="team-member">
+                  <div class="team-member__avatar">
+                    {assignment.employee?.firstname.charAt(0)}{assignment.employee?.lastname.charAt(0)}
+                  </div>
+                  <div class="team-member__info">
+                    <span class="team-member__name">
+                      {assignment.employee?.firstname} {assignment.employee?.lastname}
+                    </span>
+                    <span class="team-member__role">{assignment.role || 'Opérateur'}</span>
+                  </div>
+                  <span class="team-member__indicatif">{assignment.employee?.indicatif}</span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p class="empty-text">Aucun opérateur assigné</p>
+          )}
+          <button class="add-btn">+ Ajouter un opérateur</button>
+        </div>
+
+        <div class="detail-card">
+          <h2 class="detail-card__title">Ressources</h2>
+
+          <div class="resources-section">
+            <h3 class="resources-section__title">Armes sorties</h3>
+            {missionWeapons.length > 0 ? (
+              <div class="resources-list">
+                {missionWeapons.slice(0, 3).map(weapon => (
+                  <a href={`/app/armory/${weapon.id}`} class="resource-item">
+                    <span class="resource-item__icon">
+                      <svg viewBox="0 0 24 24" class="resource-item__icon-svg">
+                        <path d="M22 5h-7l-2-2H7L5 5H2v4h2v10h16V9h2V5h-2zM6 17V9h12v8H6z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M14 13h2M8 13h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <div class="resource-item__info">
+                      <span class="resource-item__name">{weapon.name}</span>
+                      <span class="resource-item__detail">{weapon.serial_number}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p class="empty-text">Aucune arme assignée</p>
+            )}
+          </div>
+
+          <div class="resources-section">
+            <h3 class="resources-section__title">Véhicules</h3>
+            {missionVehicles.length > 0 ? (
+              <div class="resources-list">
+                {missionVehicles.map(vehicle => (
+                  <a href={`/app/vehicles/${vehicle.id}`} class="resource-item">
+                    <span class="resource-item__icon">
+                      <svg viewBox="0 0 24 24" class="resource-item__icon-svg">
+                        <path d="M5 17h14v-5H5v5zM3 12l2-5h14l2 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="7" cy="17" r="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="17" cy="17" r="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                      </svg>
+                    </span>
+                    <div class="resource-item__info">
+                      <span class="resource-item__name">{vehicle.name}</span>
+                      <span class="resource-item__detail">{vehicle.registration}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p class="empty-text">Aucun véhicule assigné</p>
+            )}
+          </div>
+
+          <button class="add-btn">+ Ajouter une ressource</button>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <div class="detail-card">
+          <h2 class="detail-card__title">Chronologie</h2>
+          <div class="timeline">
+            <div class="timeline-item timeline-item--done">
+              <span class="timeline-item__dot"></span>
+              <div class="timeline-item__content">
+                <span class="timeline-item__label">Création</span>
+                <span class="timeline-item__date">{formatDateTime(mission.created_at)}</span>
+              </div>
+            </div>
+            <div class="timeline-item timeline-item--done">
+              <span class="timeline-item__dot"></span>
+              <div class="timeline-item__content">
+                <span class="timeline-item__label">Planifiée pour</span>
+                <span class="timeline-item__date">{formatDateTime(mission.scheduled_at)}</span>
+              </div>
+            </div>
+            {mission.started_at && (
+              <div class="timeline-item timeline-item--done">
+                <span class="timeline-item__dot"></span>
+                <div class="timeline-item__content">
+                  <span class="timeline-item__label">Démarrée</span>
+                  <span class="timeline-item__date">{formatDateTime(mission.started_at)}</span>
+                </div>
+              </div>
+            )}
+            {mission.ended_at ? (
+              <div class="timeline-item timeline-item--done">
+                <span class="timeline-item__dot"></span>
+                <div class="timeline-item__content">
+                  <span class="timeline-item__label">Terminée</span>
+                  <span class="timeline-item__date">{formatDateTime(mission.ended_at)}</span>
+                </div>
+              </div>
+            ) : mission.status !== 'CANCELLED' && (
+              <div class="timeline-item">
+                <span class="timeline-item__dot"></span>
+                <div class="timeline-item__content">
+                  <span class="timeline-item__label">Fin prévue</span>
+                  <span class="timeline-item__date">-</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <h2 class="detail-card__title">Informations</h2>
+          <div class="info-list">
+            <div class="info-item">
+              <span class="info-item__label">Type</span>
+              <span class="info-item__value">{typeLabels[mission.type]}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-item__label">Statut</span>
+              <span class="info-item__value">{statusLabels[mission.status]}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-item__label">Équipe</span>
+              <span class="info-item__value">{mission.assignments?.length || 0} opérateur(s)</span>
+            </div>
+          </div>
+        </div>
+
+        {mission.status !== 'COMPLETED' && mission.status !== 'CANCELLED' && (
+          <div class="detail-card detail-card--danger">
+            <h2 class="detail-card__title">Zone de danger</h2>
+            <button class="action-btn action-btn--danger">Annuler la mission</button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .mission-detail {
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+
+  .back-link {
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text-primary;
+    }
+  }
+
+  .back-link__icon {
+    width: 16px;
+    height: 16px;
+    transition: transform $transition-fast;
+
+    .back-link:hover & {
+      transform: translateX(-3px);
+    }
+  }
+
+  .mission-hero {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-xl;
+    display: flex;
+    gap: $spacing-xl;
+    align-items: flex-start;
+    margin-bottom: $spacing-xl;
+  }
+
+  .mission-hero__icon {
+    width: 80px;
+    height: 80px;
+    background: rgba($color-accent, 0.1);
+    border-radius: $radius-lg;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: $color-accent;
+  }
+
+  .mission-hero__icon-svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .mission-hero__content {
+    flex: 1;
+  }
+
+  .mission-hero__meta {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin-bottom: $spacing-sm;
+  }
+
+  .mission-hero__type {
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $color-text-tertiary;
+  }
+
+  .mission-hero__title {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-sm;
+  }
+
+  .mission-hero__description {
+    color: $color-text-secondary;
+    line-height: 1.6;
+  }
+
+  .mission-hero__actions {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: $spacing-xl;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .main-section, .side-section {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .detail-card {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-xl;
+
+    &--danger {
+      border-color: rgba($color-error, 0.3);
+    }
+  }
+
+  .detail-card__title {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $color-text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+
+  .team-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
+  }
+
+  .team-member {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .team-member__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $color-accent 0%, $color-accent-light 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .team-member__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .team-member__name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .team-member__role {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .team-member__indicatif {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $color-accent;
+  }
+
+  .resources-section {
+    margin-bottom: $spacing-lg;
+
+    &:last-of-type {
+      margin-bottom: $spacing-lg;
+    }
+  }
+
+  .resources-section__title {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    margin-bottom: $spacing-sm;
+  }
+
+  .resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .resource-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .resource-item__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .resource-item__icon-svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .resource-item__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .resource-item__name {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+  }
+
+  .resource-item__detail {
+    font-size: $font-size-xs;
+    font-family: $font-family-mono;
+    color: $color-text-tertiary;
+  }
+
+  .empty-text {
+    color: $color-text-tertiary;
+    font-style: italic;
+    font-size: $font-size-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  .add-btn {
+    width: 100%;
+    padding: $spacing-md;
+    background: transparent;
+    border: 1px dashed $color-border;
+    border-radius: $radius-md;
+    color: $color-text-tertiary;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: $spacing-md;
+    position: relative;
+
+    &:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 16px;
+      bottom: -$spacing-md;
+      width: 1px;
+      background: $color-border;
+    }
+
+    &--done::before {
+      background: $color-accent;
+    }
+  }
+
+  .timeline-item__dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: $color-border;
+    flex-shrink: 0;
+    margin-top: 4px;
+
+    .timeline-item--done & {
+      background: $color-accent;
+    }
+  }
+
+  .timeline-item__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .timeline-item__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .timeline-item__date {
+    font-size: $font-size-xs;
+    font-family: $font-family-mono;
+    color: $color-text-tertiary;
+  }
+
+  .info-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: $spacing-sm;
+    border-bottom: 1px solid $color-border;
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  }
+
+  .info-item__label {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+
+  .info-item__value {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+  }
+
+  .action-btn {
+    padding: $spacing-md $spacing-lg;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all $transition-fast;
+    white-space: nowrap;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: $color-text-primary;
+    }
+
+    &--primary {
+      background: $color-accent;
+      border-color: $color-accent;
+      color: #fff;
+
+      &:hover {
+        background: $color-accent-hover;
+      }
+    }
+
+    &--success {
+      background: $color-success;
+      border-color: $color-success;
+      color: #fff;
+
+      &:hover {
+        background: darken($color-success, 10%);
+      }
+    }
+
+    &--danger {
+      width: 100%;
+      color: $color-error;
+      border-color: rgba($color-error, 0.3);
+
+      &:hover {
+        background: rgba($color-error, 0.1);
+      }
+    }
+  }
+</style>

@@ -47,9 +47,18 @@ const initials = `${firstname[0]}${lastname[0]}`.toUpperCase();
   </div>
 
   <div class="employee-card__footer">
-    <span class="location-icon">📍</span>
+    <span class="location-icon">
+      <svg viewBox="0 0 24 24" class="location-icon__svg">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="2" fill="none"/>
+        <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+      </svg>
+    </span>
     <span class="location-text">{store_name || affectation}</span>
-    <div class="action-icon">→</div>
+    <div class="action-icon">
+      <svg viewBox="0 0 24 24" class="action-icon__svg">
+        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
   </div>
 
   <div class="corner-accent corner-accent--tr"></div>
@@ -212,8 +221,15 @@ const initials = `${firstname[0]}${lastname[0]}`.toUpperCase();
   }
 
   .location-icon {
-    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     opacity: 0.7;
+  }
+
+  .location-icon__svg {
+    width: 14px;
+    height: 14px;
   }
 
   .location-text {
@@ -222,8 +238,16 @@ const initials = `${firstname[0]}${lastname[0]}`.toUpperCase();
   }
 
   .action-icon {
-    transition: transform $transition-fast;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all $transition-fast;
     opacity: 0.5;
+  }
+
+  .action-icon__svg {
+    width: 14px;
+    height: 14px;
   }
 
   .corner-accent {

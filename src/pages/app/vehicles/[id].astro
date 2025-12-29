@@ -3,39 +3,39 @@ export const prerender = false;
 
 import AppLayout from '../../../layouts/AppLayout.astro';
 import Badge from '../../../components/ui/Badge.astro';
-import { getWeapon, getWeaponCheckouts } from '../../../lib/db';
+import { getVehicle, getVehicleLogs, getEmployees } from '../../../lib/db';
 
 const user = Astro.locals.user!;
 const { id } = Astro.params;
-const weapon = getWeapon(id!);
+const vehicle = getVehicle(id!);
 
-if (!weapon) {
-  return Astro.redirect('/app/armory');
+if (!vehicle) {
+  return Astro.redirect('/app/vehicles');
 }
 
-const checkouts = getWeaponCheckouts({ weapon_id: id });
+const logs = getVehicleLogs(id!);
+const employees = getEmployees();
 
 const stateLabels: Record<string, string> = {
   AVAILABLE: 'Disponible',
-  CHECKED_OUT: 'Sortie',
+  IN_USE: 'En service',
   MAINTENANCE: 'Maintenance',
-  LOST: 'Perdue'
+  OUT_OF_SERVICE: 'Hors service'
 };
 
 const stateVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
   AVAILABLE: 'success',
-  CHECKED_OUT: 'info',
+  IN_USE: 'info',
   MAINTENANCE: 'warning',
-  LOST: 'error'
+  OUT_OF_SERVICE: 'error'
 };
 
 const typeLabels: Record<string, string> = {
-  PISTOL: 'Pistolet',
-  RIFLE: 'Fusil d\'assaut',
-  SHOTGUN: 'Fusil à pompe',
-  SMG: 'Pistolet-mitrailleur',
-  SNIPER: 'Fusil de précision',
-  OTHER: 'Autre'
+  CAR: 'Voiture',
+  VAN: 'Fourgon',
+  TRUCK: 'Camion',
+  MOTORCYCLE: 'Moto',
+  ARMORED: 'Blindé'
 };
 
 function formatDate(date: Date) {
@@ -45,15 +45,24 @@ function formatDate(date: Date) {
     year: 'numeric'
   }).format(new Date(date));
 }
+
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
 ---
-<AppLayout title={weapon.name} user={user}>
-  <div class="weapon-detail">
+<AppLayout title={vehicle.name} user={user}>
+  <div class="vehicle-detail">
     <div class="page-header">
-      <a href="/app/armory" class="back-link">
+      <a href="/app/vehicles" class="back-link">
         <svg viewBox="0 0 24 24" class="back-link__icon">
           <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
-        Retour à l'armurerie
+        Retour aux véhicules
       </a>
     </div>
 
@@ -62,50 +71,46 @@ function formatDate(date: Date) {
         <div class="detail-card">
           <div class="detail-card__header">
             <div class="detail-card__title-row">
-              <span class="detail-card__type">{typeLabels[weapon.type]}</span>
-              <Badge variant={stateVariants[weapon.state]} size="sm">
-                {stateLabels[weapon.state]}
+              <span class="detail-card__type">{typeLabels[vehicle.type]}</span>
+              <Badge variant={stateVariants[vehicle.state]} size="sm">
+                {stateLabels[vehicle.state]}
               </Badge>
             </div>
-            <h1 class="detail-card__title">{weapon.name}</h1>
-            <span class="detail-card__serial">{weapon.serial_number}</span>
+            <h1 class="detail-card__title">{vehicle.name}</h1>
+            <span class="detail-card__registration">{vehicle.registration}</span>
           </div>
 
-          {weapon.description && (
+          {vehicle.description && (
             <div class="detail-card__description">
-              <p>{weapon.description}</p>
+              <p>{vehicle.description}</p>
             </div>
           )}
 
           <div class="detail-card__specs">
             <div class="spec-item">
-              <span class="spec-item__label">Calibre</span>
-              <span class="spec-item__value">{weapon.caliber}</span>
-            </div>
-            <div class="spec-item">
-              <span class="spec-item__label">Nombre de tirs</span>
-              <span class="spec-item__value">{weapon.shot_count.toLocaleString()}</span>
+              <span class="spec-item__label">Kilométrage</span>
+              <span class="spec-item__value">{vehicle.mileage.toLocaleString()} km</span>
             </div>
             <div class="spec-item">
               <span class="spec-item__label">Dernière maintenance</span>
-              <span class="spec-item__value">{weapon.last_maintenance ? formatDate(weapon.last_maintenance) : '-'}</span>
+              <span class="spec-item__value">{vehicle.last_maintenance ? formatDate(vehicle.last_maintenance) : '-'}</span>
             </div>
             <div class="spec-item">
               <span class="spec-item__label">Prochaine maintenance</span>
-              <span class="spec-item__value">{weapon.next_maintenance ? formatDate(weapon.next_maintenance) : '-'}</span>
+              <span class="spec-item__value">{vehicle.next_maintenance ? formatDate(vehicle.next_maintenance) : '-'}</span>
             </div>
             <div class="spec-item">
               <span class="spec-item__label">Antenne</span>
-              <span class="spec-item__value">{weapon.store?.name || '-'}</span>
+              <span class="spec-item__value">{vehicle.store?.name || '-'}</span>
             </div>
           </div>
         </div>
 
-        {weapon.photos && weapon.photos.length > 0 && (
+        {vehicle.photos && vehicle.photos.length > 0 && (
           <div class="detail-card">
             <h2 class="detail-card__section-title">Photos</h2>
             <div class="photos-grid">
-              {weapon.photos.map(photo => (
+              {vehicle.photos.map(photo => (
                 <div class="photo-placeholder">
                   <span class="photo-placeholder__icon">
                   <svg viewBox="0 0 24 24" class="photo-placeholder__svg">
@@ -119,56 +124,89 @@ function formatDate(date: Date) {
             </div>
           </div>
         )}
+
+        {logs.length > 0 && (
+          <div class="detail-card">
+            <h2 class="detail-card__section-title">Historique d'utilisation</h2>
+            <div class="logs-table">
+              <div class="logs-table__header">
+                <span>Opérateur</span>
+                <span>Début</span>
+                <span>Fin</span>
+                <span>Km</span>
+              </div>
+              {logs.map(log => {
+                const operator = employees.find(e => e.id === log.operator_id);
+                return (
+                  <div class="logs-table__row">
+                    <span class="logs-table__operator">
+                      {operator ? `${operator.firstname} ${operator.lastname}` : '-'}
+                    </span>
+                    <span class="logs-table__date">{formatDateTime(log.started_at)}</span>
+                    <span class="logs-table__date">{log.ended_at ? formatDateTime(log.ended_at) : 'En cours'}</span>
+                    <span class="logs-table__km">
+                      {log.mileage_end ? `${log.mileage_end - log.mileage_start} km` : '-'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div class="side-section">
         <div class="detail-card">
           <h2 class="detail-card__section-title">Assignation</h2>
-          {weapon.assigned_to ? (
-            <a href={`/app/employees/${weapon.assigned_to.id}`} class="assignee-card">
+          {vehicle.assigned_to ? (
+            <a href={`/app/employees/${vehicle.assigned_to.id}`} class="assignee-card">
               <div class="assignee-card__avatar">
-                {weapon.assigned_to.firstname.charAt(0)}{weapon.assigned_to.lastname.charAt(0)}
+                {vehicle.assigned_to.firstname.charAt(0)}{vehicle.assigned_to.lastname.charAt(0)}
               </div>
               <div class="assignee-card__info">
-                <span class="assignee-card__name">{weapon.assigned_to.firstname} {weapon.assigned_to.lastname}</span>
-                <span class="assignee-card__detail">{weapon.assigned_to.indicatif} · {weapon.assigned_to.matricule}</span>
+                <span class="assignee-card__name">{vehicle.assigned_to.firstname} {vehicle.assigned_to.lastname}</span>
+                <span class="assignee-card__detail">{vehicle.assigned_to.indicatif} · {vehicle.assigned_to.matricule}</span>
               </div>
             </a>
           ) : (
-            <p class="no-assignment">Non assignée</p>
+            <p class="no-assignment">Non assigné</p>
           )}
         </div>
 
         <div class="detail-card">
           <h2 class="detail-card__section-title">Actions</h2>
           <div class="actions-list">
-            {weapon.state === 'AVAILABLE' && (
-              <button class="action-btn action-btn--primary">Sortir l'arme</button>
+            {vehicle.state === 'AVAILABLE' && (
+              <button class="action-btn action-btn--primary">Prendre le véhicule</button>
             )}
-            {weapon.state === 'CHECKED_OUT' && (
-              <button class="action-btn action-btn--primary">Retourner l'arme</button>
+            {vehicle.state === 'IN_USE' && (
+              <button class="action-btn action-btn--primary">Retourner le véhicule</button>
             )}
             <button class="action-btn">Modifier</button>
             <button class="action-btn">Ajouter photo</button>
-            {weapon.state !== 'MAINTENANCE' && (
+            {vehicle.state !== 'MAINTENANCE' && (
               <button class="action-btn action-btn--warning">Envoyer en maintenance</button>
             )}
           </div>
         </div>
 
-        {checkouts.length > 0 && (
-          <div class="detail-card">
-            <h2 class="detail-card__section-title">Historique sorties</h2>
-            <div class="history-list">
-              {checkouts.slice(0, 5).map(checkout => (
-                <div class="history-item">
-                  <span class="history-item__status">{checkout.status}</span>
-                  <span class="history-item__ammo">{checkout.ammo_out} cartouches</span>
-                </div>
-              ))}
+        <div class="detail-card">
+          <h2 class="detail-card__section-title">Informations</h2>
+          <div class="info-list">
+            <div class="info-item">
+              <span class="info-item__label">Immatriculation</span>
+              <span class="info-item__value">{vehicle.registration}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-item__label">Type</span>
+              <span class="info-item__value">{typeLabels[vehicle.type]}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-item__label">Antenne</span>
+              <span class="info-item__value">{vehicle.store?.name || '-'}</span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   </div>
@@ -178,7 +216,7 @@ function formatDate(date: Date) {
   @use '../../../styles/variables' as *;
   @use '../../../styles/mixins' as *;
 
-  .weapon-detail {
+  .vehicle-detail {
     max-width: 1200px;
   }
 
@@ -257,10 +295,11 @@ function formatDate(date: Date) {
     margin-bottom: $spacing-xs;
   }
 
-  .detail-card__serial {
-    font-size: $font-size-sm;
-    color: $color-text-tertiary;
+  .detail-card__registration {
+    font-size: $font-size-lg;
+    color: $color-accent;
     font-family: $font-family-mono;
+    font-weight: $font-weight-semibold;
   }
 
   .detail-card__description {
@@ -344,6 +383,50 @@ function formatDate(date: Date) {
     text-align: center;
     padding: 0 $spacing-sm;
     word-break: break-all;
+  }
+
+  .logs-table {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .logs-table__header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 80px;
+    gap: $spacing-md;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+  }
+
+  .logs-table__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 80px;
+    gap: $spacing-md;
+    padding: $spacing-md 0;
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-sm;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .logs-table__operator {
+    color: $color-text-primary;
+  }
+
+  .logs-table__date {
+    color: $color-text-secondary;
+    font-family: $font-family-mono;
+    font-size: $font-size-xs;
+  }
+
+  .logs-table__km {
+    color: $color-accent;
+    font-family: $font-family-mono;
   }
 
   .assignee-card {
@@ -441,30 +524,31 @@ function formatDate(date: Date) {
     }
   }
 
-  .history-list {
+  .info-list {
     display: flex;
     flex-direction: column;
-    gap: $spacing-sm;
+    gap: $spacing-md;
   }
 
-  .history-item {
+  .info-item {
     display: flex;
     justify-content: space-between;
     padding: $spacing-sm 0;
     border-bottom: 1px solid $color-border;
-    font-size: $font-size-sm;
 
     &:last-child {
       border-bottom: none;
     }
   }
 
-  .history-item__status {
-    color: $color-text-secondary;
+  .info-item__label {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
   }
 
-  .history-item__ammo {
-    color: $color-text-tertiary;
+  .info-item__value {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
     font-family: $font-family-mono;
   }
 </style>

@@ -52,7 +52,11 @@ const stateLabels: Record<string, string> = {
 
   <div class="asset-card__footer">
     {serialNumber ? <span class="serial-number">S/N: {serialNumber}</span> : <span></span>}
-    <div class="action-icon">→</div>
+    <div class="action-icon">
+      <svg viewBox="0 0 24 24" class="action-icon__svg">
+        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
   </div>
 
   <div class="corner-accent corner-accent--tl"></div>
@@ -181,9 +185,16 @@ const stateLabels: Record<string, string> = {
   }
 
   .action-icon {
-    font-size: $font-size-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: $color-text-tertiary;
     transition: all $transition-fast;
+  }
+
+  .action-icon__svg {
+    width: 14px;
+    height: 14px;
   }
 
   // Corner accents for technical look

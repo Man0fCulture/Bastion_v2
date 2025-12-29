@@ -1,0 +1,430 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getVehicles } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+
+const allVehicles = getVehicles();
+const maintenanceVehicles = allVehicles.filter(v => v.state === 'MAINTENANCE');
+const upcomingMaintenance = allVehicles.filter(v => {
+  if (!v.next_maintenance || v.state === 'MAINTENANCE') return false;
+  const daysUntil = Math.ceil((new Date(v.next_maintenance).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  return daysUntil <= 30;
+}).sort((a, b) => new Date(a.next_maintenance!).getTime() - new Date(b.next_maintenance!).getTime());
+
+const typeLabels: Record<string, string> = {
+  CAR: 'Voiture',
+  VAN: 'Fourgon',
+  TRUCK: 'Camion',
+  MOTORCYCLE: 'Moto',
+  ARMORED: 'Blindé'
+};
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(date));
+}
+
+function getDaysUntil(date: Date) {
+  return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+function getBadgeClass(daysUntil: number) {
+  if (daysUntil <= 7) return 'days-badge days-badge--urgent';
+  if (daysUntil <= 14) return 'days-badge days-badge--warning';
+  return 'days-badge';
+}
+
+const upcomingWithDays = upcomingMaintenance.map(v => ({
+  ...v,
+  daysUntil: getDaysUntil(v.next_maintenance!),
+  badgeClass: getBadgeClass(getDaysUntil(v.next_maintenance!))
+}));
+---
+<AppLayout title="Maintenance véhicules" user={user}>
+  <div class="maintenance-page">
+    <div class="page-header">
+      <div class="header-content">
+        <a href="/app/vehicles" class="back-link">
+          <svg viewBox="0 0 24 24" class="back-link__icon">
+            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          Retour aux véhicules
+        </a>
+        <h1 class="page-title">Maintenance</h1>
+        <p class="page-subtitle">Suivi des révisions et réparations</p>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card stat-card--warning">
+        <span class="stat-value">{maintenanceVehicles.length}</span>
+        <span class="stat-label">En maintenance</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{upcomingMaintenance.length}</span>
+        <span class="stat-label">Révisions à prévoir (30j)</span>
+      </div>
+    </div>
+
+    {maintenanceVehicles.length > 0 && (
+      <section class="section">
+        <h2 class="section-title">Véhicules en maintenance</h2>
+        <div class="vehicles-grid">
+          {maintenanceVehicles.map(vehicle => (
+            <a href={`/app/vehicles/${vehicle.id}`} class="vehicle-card vehicle-card--maintenance">
+              <div class="vehicle-card__header">
+                <span class="vehicle-card__type">{typeLabels[vehicle.type]}</span>
+                <Badge variant="warning" size="sm">En maintenance</Badge>
+              </div>
+              <h3 class="vehicle-card__name">{vehicle.name}</h3>
+              <span class="vehicle-card__registration">{vehicle.registration}</span>
+              {vehicle.description && (
+                <p class="vehicle-card__description">{vehicle.description}</p>
+              )}
+              <div class="vehicle-card__footer">
+                <span class="vehicle-card__km">{vehicle.mileage.toLocaleString()} km</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {upcomingMaintenance.length > 0 && (
+      <section class="section">
+        <h2 class="section-title">Révisions à prévoir</h2>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Véhicule</th>
+                <th>Type</th>
+                <th>Kilométrage</th>
+                <th>Prochaine maintenance</th>
+                <th>Jours restants</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcomingWithDays.map(vehicle => (
+                <tr>
+                  <td>
+                    <div class="vehicle-cell">
+                      <span class="vehicle-cell__name">{vehicle.name}</span>
+                      <span class="vehicle-cell__registration">{vehicle.registration}</span>
+                    </div>
+                  </td>
+                  <td>{typeLabels[vehicle.type]}</td>
+                  <td class="mono">{vehicle.mileage.toLocaleString()} km</td>
+                  <td class="mono">{formatDate(vehicle.next_maintenance!)}</td>
+                  <td>
+                    <span class={vehicle.badgeClass}>
+                      {vehicle.daysUntil} jours
+                    </span>
+                  </td>
+                  <td>
+                    <a href={`/app/vehicles/${vehicle.id}`} class="action-link">Voir</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+
+    {maintenanceVehicles.length === 0 && upcomingMaintenance.length === 0 && (
+      <div class="empty-state">
+        <span class="empty-state__icon">
+          <svg viewBox="0 0 24 24" class="empty-state__icon-svg">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" fill="none"/>
+            <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </span>
+        <p class="empty-state__text">Tous les véhicules sont à jour</p>
+      </div>
+    )}
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .maintenance-page {
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+
+  .back-link {
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-bottom: $spacing-md;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text-primary;
+    }
+  }
+
+  .back-link__icon {
+    width: 16px;
+    height: 16px;
+    transition: transform $transition-fast;
+
+    .back-link:hover & {
+      transform: translateX(-3px);
+    }
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-2xl;
+  }
+
+  .stat-card {
+    @include glass-panel;
+    padding: $spacing-lg $spacing-xl;
+    border-radius: $radius-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    min-width: 180px;
+
+    &--warning {
+      border-color: rgba($color-warning, 0.3);
+      background: rgba($color-warning, 0.05);
+    }
+  }
+
+  .stat-value {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+
+    .stat-card--warning & {
+      color: $color-warning;
+    }
+  }
+
+  .stat-label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .section {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .section-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: $spacing-lg;
+  }
+
+  .vehicles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .vehicle-card {
+    @include glass-panel;
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+    text-decoration: none;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: rgba($color-accent, 0.5);
+      transform: translateY(-2px);
+    }
+
+    &--maintenance {
+      border-left: 3px solid $color-warning;
+    }
+  }
+
+  .vehicle-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-sm;
+  }
+
+  .vehicle-card__type {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+  }
+
+  .vehicle-card__name {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-xs;
+  }
+
+  .vehicle-card__registration {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $color-accent;
+    display: block;
+    margin-bottom: $spacing-md;
+  }
+
+  .vehicle-card__description {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    line-height: 1.5;
+    margin-bottom: $spacing-md;
+  }
+
+  .vehicle-card__footer {
+    padding-top: $spacing-md;
+    border-top: 1px solid $color-border;
+  }
+
+  .vehicle-card__km {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+
+  .table-container {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    overflow: hidden;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th, td {
+      padding: $spacing-md $spacing-lg;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.2);
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $color-text-secondary;
+    }
+
+    td {
+      border-bottom: 1px solid $color-border;
+      font-size: $font-size-sm;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mono {
+      font-family: $font-family-mono;
+    }
+  }
+
+  .vehicle-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .vehicle-cell__name {
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .vehicle-cell__registration {
+    font-size: $font-size-xs;
+    font-family: $font-family-mono;
+    color: $color-accent;
+  }
+
+  .days-badge {
+    display: inline-block;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-sm;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    background: rgba(255, 255, 255, 0.05);
+    color: $color-text-secondary;
+
+    &--warning {
+      background: rgba($color-warning, 0.15);
+      color: $color-warning;
+    }
+
+    &--urgent {
+      background: rgba($color-error, 0.15);
+      color: $color-error;
+    }
+  }
+
+  .action-link {
+    font-size: $font-size-sm;
+    color: $color-accent;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .empty-state {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-4xl;
+    text-align: center;
+  }
+
+  .empty-state__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: $spacing-lg;
+    color: $color-success;
+  }
+
+  .empty-state__icon-svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .empty-state__text {
+    color: $color-text-secondary;
+    font-size: $font-size-lg;
+  }
+</style>

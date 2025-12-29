@@ -99,7 +99,11 @@ const typeLabels: Record<string, string> = {
             </div>
             <div class="weapon-card__footer">
               <span class="weapon-card__serial">{weapon.serial_number}</span>
-              <span class="weapon-card__arrow">→</span>
+              <span class="weapon-card__arrow">
+                <svg viewBox="0 0 24 24" class="weapon-card__arrow-svg">
+                  <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+              </span>
             </div>
           </a>
         ))}
@@ -292,13 +296,21 @@ const typeLabels: Record<string, string> = {
   }
 
   .weapon-card__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: $color-text-tertiary;
-    transition: transform $transition-fast;
+    transition: all $transition-fast;
 
     .weapon-card:hover & {
       transform: translateX(4px);
       color: $color-text-primary;
     }
+  }
+
+  .weapon-card__arrow-svg {
+    width: 16px;
+    height: 16px;
   }
 
   .ammo-grid {

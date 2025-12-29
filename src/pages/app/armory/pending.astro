@@ -1,0 +1,615 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getWeapons, getWeaponCheckouts, getEmployees } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+
+const weapons = getWeapons();
+const checkouts = getWeaponCheckouts();
+const employees = getEmployees();
+
+const pendingCheckouts = checkouts.filter(c => c.status === 'PENDING');
+const pendingReturns = checkouts.filter(c => c.status === 'CHECKED_OUT');
+
+const typeLabels: Record<string, string> = {
+  PISTOL: 'Pistolet',
+  RIFLE: 'Fusil',
+  SHOTGUN: 'Fusil à pompe',
+  SMG: 'PM',
+  SNIPER: 'Précision',
+  OTHER: 'Autre'
+};
+
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
+
+const mockPendingRequests = [
+  {
+    id: 'req-1',
+    weapon_id: '1',
+    operator_id: '3',
+    ammo_requested: 30,
+    mission_id: '2',
+    created_at: new Date(Date.now() - 3600000),
+    status: 'PENDING'
+  },
+  {
+    id: 'req-2',
+    weapon_id: '4',
+    operator_id: '6',
+    ammo_requested: 60,
+    mission_id: undefined,
+    created_at: new Date(Date.now() - 7200000),
+    status: 'PENDING'
+  }
+];
+---
+<AppLayout title="Validations armurerie" user={user}>
+  <div class="pending-page">
+    <div class="page-header">
+      <a href="/app/armory" class="back-link">
+        <svg viewBox="0 0 24 24" class="back-link__icon">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        Retour à l'armurerie
+      </a>
+      <h1 class="page-title">Validations en attente</h1>
+      <p class="page-subtitle">Demandes de sortie et retours à valider</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card stat-card--warning">
+        <span class="stat-value">{mockPendingRequests.length}</span>
+        <span class="stat-label">Demandes de sortie</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{pendingReturns.length}</span>
+        <span class="stat-label">Retours en attente</span>
+      </div>
+    </div>
+
+    <section class="section">
+      <h2 class="section-title">Demandes de sortie</h2>
+
+      {mockPendingRequests.length === 0 ? (
+        <div class="empty-state">
+          <span class="empty-state__icon">
+            <svg viewBox="0 0 24 24" class="empty-state__icon-svg">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" fill="none"/>
+              <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </span>
+          <p>Aucune demande en attente</p>
+        </div>
+      ) : (
+        <div class="requests-list">
+          {mockPendingRequests.map(request => {
+            const weapon = weapons.find(w => w.id === request.weapon_id);
+            const operator = employees.find(e => e.id === request.operator_id);
+            return (
+              <div class="request-card">
+                <div class="request-card__header">
+                  <Badge variant="warning" size="sm">En attente</Badge>
+                  <span class="request-card__time">{formatDateTime(request.created_at)}</span>
+                </div>
+
+                <div class="request-card__body">
+                  <div class="request-card__weapon">
+                    <span class="request-card__weapon-type">{weapon ? typeLabels[weapon.type] : '-'}</span>
+                    <h3 class="request-card__weapon-name">{weapon?.name || 'Arme inconnue'}</h3>
+                    <span class="request-card__weapon-serial">{weapon?.serial_number}</span>
+                  </div>
+
+                  <div class="request-card__arrow">
+                    <svg viewBox="0 0 24 24" class="request-card__arrow-svg">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                  </div>
+
+                  <div class="request-card__operator">
+                    <div class="operator-avatar">
+                      {operator?.firstname.charAt(0)}{operator?.lastname.charAt(0)}
+                    </div>
+                    <div class="operator-info">
+                      <span class="operator-name">{operator?.firstname} {operator?.lastname}</span>
+                      <span class="operator-indicatif">{operator?.indicatif}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="request-card__details">
+                  <div class="detail-item">
+                    <span class="detail-item__label">Munitions demandées</span>
+                    <span class="detail-item__value">{request.ammo_requested} cartouches</span>
+                  </div>
+                  {request.mission_id && (
+                    <div class="detail-item">
+                      <span class="detail-item__label">Mission</span>
+                      <span class="detail-item__value">Surveillance VIP</span>
+                    </div>
+                  )}
+                </div>
+
+                <div class="request-card__actions">
+                  <button class="action-btn action-btn--approve">
+                    <svg viewBox="0 0 24 24" class="action-btn__icon">
+                      <polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                    Approuver
+                  </button>
+                  <button class="action-btn action-btn--reject">
+                    <svg viewBox="0 0 24 24" class="action-btn__icon">
+                      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Refuser
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Retours à valider</h2>
+
+      {pendingReturns.length === 0 ? (
+        <div class="empty-state">
+          <span class="empty-state__icon">
+            <svg viewBox="0 0 24 24" class="empty-state__icon-svg">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" fill="none"/>
+              <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </span>
+          <p>Aucun retour en attente</p>
+        </div>
+      ) : (
+        <div class="returns-list">
+          {pendingReturns.map(checkout => {
+            const weapon = weapons.find(w => w.id === checkout.weapon_id);
+            const operator = employees.find(e => e.id === checkout.operator_id);
+            return (
+              <div class="return-card">
+                <div class="return-card__main">
+                  <div class="return-card__weapon">
+                    <span class="return-card__weapon-name">{weapon?.name}</span>
+                    <span class="return-card__weapon-serial">{weapon?.serial_number}</span>
+                  </div>
+                  <div class="return-card__operator">
+                    {operator?.firstname} {operator?.lastname} ({operator?.indicatif})
+                  </div>
+                  <div class="return-card__ammo">
+                    <span class="return-card__ammo-label">Munitions sorties:</span>
+                    <span class="return-card__ammo-value">{checkout.ammo_out}</span>
+                  </div>
+                </div>
+
+                <div class="return-card__form">
+                  <div class="return-input-group">
+                    <label>Munitions retournées</label>
+                    <input type="number" value={checkout.ammo_out} min="0" max={checkout.ammo_out} />
+                  </div>
+                  <button class="action-btn action-btn--primary">Valider le retour</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .pending-page {
+    max-width: 1000px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+
+  .back-link {
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-bottom: $spacing-md;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text-primary;
+    }
+  }
+
+  .back-link__icon {
+    width: 16px;
+    height: 16px;
+    transition: transform $transition-fast;
+
+    .back-link:hover & {
+      transform: translateX(-3px);
+    }
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-2xl;
+  }
+
+  .stat-card {
+    @include glass-panel;
+    padding: $spacing-lg $spacing-xl;
+    border-radius: $radius-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    min-width: 180px;
+
+    &--warning {
+      border-color: rgba($color-warning, 0.3);
+      background: rgba($color-warning, 0.05);
+
+      .stat-value {
+        color: $color-warning;
+      }
+    }
+  }
+
+  .stat-value {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+  }
+
+  .stat-label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .section {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .section-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: $spacing-lg;
+  }
+
+  .empty-state {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-2xl;
+    text-align: center;
+    color: $color-text-tertiary;
+  }
+
+  .empty-state__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: $spacing-md;
+    color: $color-success;
+  }
+
+  .empty-state__icon-svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .request-card {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-xl;
+    border-left: 4px solid $color-warning;
+  }
+
+  .request-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+  }
+
+  .request-card__time {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .request-card__body {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xl;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $color-border;
+  }
+
+  .request-card__weapon {
+    flex: 1;
+  }
+
+  .request-card__weapon-type {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+  }
+
+  .request-card__weapon-name {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin: $spacing-xs 0;
+  }
+
+  .request-card__weapon-serial {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $color-accent;
+  }
+
+  .request-card__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text-tertiary;
+  }
+
+  .request-card__arrow-svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .request-card__operator {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  .operator-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $color-accent 0%, $color-accent-light 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $font-weight-semibold;
+    color: #fff;
+  }
+
+  .operator-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .operator-name {
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .operator-indicatif {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+
+  .request-card__details {
+    display: flex;
+    gap: $spacing-xl;
+    margin-bottom: $spacing-lg;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detail-item__label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .detail-item__value {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+    font-family: $font-family-mono;
+  }
+
+  .request-card__actions {
+    display: flex;
+    gap: $spacing-md;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: $spacing-md $spacing-lg;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: transparent;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+    transition: all $transition-fast;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+
+    &--approve {
+      background: rgba($color-success, 0.1);
+      border-color: rgba($color-success, 0.3);
+      color: $color-success;
+
+      &:hover {
+        background: $color-success;
+        color: #fff;
+      }
+    }
+
+    &--reject {
+      color: $color-error;
+      border-color: rgba($color-error, 0.3);
+
+      &:hover {
+        background: rgba($color-error, 0.1);
+      }
+    }
+
+    &--primary {
+      background: $color-accent;
+      border-color: $color-accent;
+      color: #fff;
+
+      &:hover {
+        background: $color-accent-hover;
+      }
+    }
+  }
+
+  .action-btn__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .returns-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .return-card {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: $spacing-xl;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .return-card__main {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xl;
+    flex: 1;
+  }
+
+  .return-card__weapon {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .return-card__weapon-name {
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .return-card__weapon-serial {
+    font-family: $font-family-mono;
+    font-size: $font-size-xs;
+    color: $color-accent;
+  }
+
+  .return-card__operator {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .return-card__ammo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .return-card__ammo-label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .return-card__ammo-value {
+    font-family: $font-family-mono;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+  }
+
+  .return-card__form {
+    display: flex;
+    align-items: flex-end;
+    gap: $spacing-md;
+  }
+
+  .return-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    label {
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+    }
+
+    input {
+      width: 100px;
+      padding: $spacing-sm;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      color: $color-text-primary;
+      font-family: $font-family-mono;
+      font-size: $font-size-base;
+
+      &:focus {
+        outline: none;
+        border-color: $color-accent;
+      }
+    }
+  }
+</style>

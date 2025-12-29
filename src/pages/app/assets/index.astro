@@ -70,7 +70,11 @@ const repair = assets.filter(a => a.state === 'IN_REPAIR').length;
           </div>
           <div class="asset-card__footer">
             <span class="serial-number">{asset.serial_number ? `S/N: ${asset.serial_number}` : ''}</span>
-            <span class="action-icon">→</span>
+            <span class="action-icon">
+              <svg viewBox="0 0 24 24" class="action-icon__svg">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
           </div>
         </a>
       ))}
@@ -218,6 +222,20 @@ const repair = assets.filter(a => a.state === 'IN_REPAIR').length;
   }
 
   .action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: $color-text-tertiary;
+    transition: all $transition-fast;
+
+    .asset-card:hover & {
+      transform: translateX(3px);
+      color: $color-text-primary;
+    }
+  }
+
+  .action-icon__svg {
+    width: 16px;
+    height: 16px;
   }
 </style>

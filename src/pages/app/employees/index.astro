@@ -68,7 +68,11 @@ const actifs = employees.filter(e => e.active).length;
 
           <div class="employee-card__footer">
             <span>{emp.store_name}</span>
-            <span class="action-icon">→</span>
+            <span class="action-icon">
+              <svg viewBox="0 0 24 24" class="action-icon__svg">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+            </span>
           </div>
         </a>
       ))}
@@ -249,6 +253,20 @@ const actifs = employees.filter(e => e.active).length;
   }
 
   .action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: $color-text-tertiary;
+    transition: all $transition-fast;
+
+    .employee-card:hover & {
+      transform: translateX(3px);
+      color: $color-text-primary;
+    }
+  }
+
+  .action-icon__svg {
+    width: 16px;
+    height: 16px;
   }
 </style>

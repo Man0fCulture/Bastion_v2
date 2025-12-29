@@ -1,0 +1,508 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getWeapons, getEmployees, getAmmunition } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+
+const weapons = getWeapons();
+const employees = getEmployees({ store_id: undefined });
+const ammunition = getAmmunition();
+
+const availableWeapons = weapons.filter(w => w.state === 'AVAILABLE');
+const checkedOutWeapons = weapons.filter(w => w.state === 'CHECKED_OUT');
+const activeEmployees = employees.filter(e => e.active);
+
+const typeLabels: Record<string, string> = {
+  PISTOL: 'Pistolet',
+  RIFLE: 'Fusil',
+  SHOTGUN: 'Fusil à pompe',
+  SMG: 'PM',
+  SNIPER: 'Précision',
+  OTHER: 'Autre'
+};
+---
+<AppLayout title="Sortie d'armes" user={user}>
+  <div class="checkout-page">
+    <div class="page-header">
+      <a href="/app/armory" class="back-link">
+        <svg viewBox="0 0 24 24" class="back-link__icon">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        Retour à l'armurerie
+      </a>
+      <h1 class="page-title">Sortie / Retour d'armes</h1>
+      <p class="page-subtitle">Gestion des mouvements d'armes avec double validation</p>
+    </div>
+
+    <div class="checkout-grid">
+      <div class="panel">
+        <div class="panel__header">
+          <h2 class="panel__title">Nouvelle sortie</h2>
+        </div>
+
+        <form class="checkout-form" id="checkout-form">
+          <div class="form-section">
+            <label class="form-label">Opérateur</label>
+            <select class="form-select" name="operator" required>
+              <option value="">Sélectionner un opérateur</option>
+              {activeEmployees.map(emp => (
+                <option value={emp.id}>{emp.firstname} {emp.lastname} ({emp.indicatif})</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Arme</label>
+            <select class="form-select" name="weapon" required>
+              <option value="">Sélectionner une arme</option>
+              {availableWeapons.map(weapon => (
+                <option value={weapon.id} data-caliber={weapon.caliber}>
+                  {weapon.name} - {weapon.serial_number} ({typeLabels[weapon.type]})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Munitions</label>
+            <div class="ammo-grid">
+              {ammunition.map(ammo => (
+                <div class="ammo-item" data-caliber={ammo.caliber}>
+                  <span class="ammo-item__caliber">{ammo.caliber}</span>
+                  <span class="ammo-item__stock">Stock: {ammo.quantity}</span>
+                  <input
+                    type="number"
+                    class="ammo-item__input"
+                    name={`ammo_${ammo.caliber}`}
+                    placeholder="Qté"
+                    min="0"
+                    max={ammo.quantity}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label class="form-label">Mission (optionnel)</label>
+            <select class="form-select" name="mission">
+              <option value="">Aucune mission liée</option>
+              <option value="1">Opération Alpha</option>
+              <option value="2">Surveillance VIP</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary">
+              Créer la demande de sortie
+            </button>
+            <p class="form-note">La demande devra être validée par l'officier armurerie</p>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel__header">
+          <h2 class="panel__title">Armes en circulation</h2>
+          <span class="panel__count">{checkedOutWeapons.length} arme(s)</span>
+        </div>
+
+        {checkedOutWeapons.length === 0 ? (
+          <div class="empty-state">
+            <p>Aucune arme en circulation</p>
+          </div>
+        ) : (
+          <div class="weapons-list">
+            {checkedOutWeapons.map(weapon => {
+              const assignedTo = employees.find(e => e.id === weapon.assigned_to_employee_id);
+              return (
+                <div class="weapon-item">
+                  <div class="weapon-item__main">
+                    <div class="weapon-item__header">
+                      <span class="weapon-item__name">{weapon.name}</span>
+                      <Badge variant="info" size="sm">Sortie</Badge>
+                    </div>
+                    <span class="weapon-item__serial">{weapon.serial_number}</span>
+                    {assignedTo && (
+                      <span class="weapon-item__operator">
+                        <svg viewBox="0 0 24 24" class="weapon-item__arrow">
+                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                        {assignedTo.firstname} {assignedTo.lastname} ({assignedTo.indicatif})
+                      </span>
+                    )}
+                  </div>
+                  <button class="return-btn">Retourner</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <h3 class="info-panel__title">Processus de double validation</h3>
+      <div class="process-steps">
+        <div class="process-step">
+          <span class="process-step__number">1</span>
+          <div class="process-step__content">
+            <span class="process-step__title">Demande</span>
+            <span class="process-step__desc">L'opérateur crée une demande de sortie</span>
+          </div>
+        </div>
+        <div class="process-step">
+          <span class="process-step__number">2</span>
+          <div class="process-step__content">
+            <span class="process-step__title">Validation</span>
+            <span class="process-step__desc">L'officier armurerie approuve la demande</span>
+          </div>
+        </div>
+        <div class="process-step">
+          <span class="process-step__number">3</span>
+          <div class="process-step__content">
+            <span class="process-step__title">Sortie</span>
+            <span class="process-step__desc">L'arme est remise avec les munitions</span>
+          </div>
+        </div>
+        <div class="process-step">
+          <span class="process-step__number">4</span>
+          <div class="process-step__content">
+            <span class="process-step__title">Retour</span>
+            <span class="process-step__desc">Double validation au retour + comptage munitions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .checkout-page {
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+
+  .back-link {
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    margin-bottom: $spacing-md;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text-primary;
+    }
+  }
+
+  .back-link__icon {
+    width: 16px;
+    height: 16px;
+    transition: transform $transition-fast;
+
+    .back-link:hover & {
+      transform: translateX(-3px);
+    }
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+  }
+
+  .checkout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-xl;
+    margin-bottom: $spacing-xl;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .panel {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-xl;
+  }
+
+  .panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+  }
+
+  .panel__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .panel__count {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+
+  .checkout-form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .form-label {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-secondary;
+  }
+
+  .form-select {
+    padding: $spacing-md;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text-primary;
+    font-size: $font-size-base;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+    }
+
+    option {
+      background: $color-bg-elevated;
+    }
+  }
+
+  .ammo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-md;
+  }
+
+  .ammo-item {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    padding: $spacing-md;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+  }
+
+  .ammo-item__caliber {
+    font-family: $font-family-mono;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-accent;
+  }
+
+  .ammo-item__stock {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .ammo-item__input {
+    padding: $spacing-sm;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    color: $color-text-primary;
+    font-size: $font-size-sm;
+    font-family: $font-family-mono;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+    }
+  }
+
+  .form-actions {
+    margin-top: $spacing-md;
+  }
+
+  .btn {
+    width: 100%;
+    padding: $spacing-md $spacing-lg;
+    border: none;
+    border-radius: $radius-md;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &--primary {
+      background: $color-accent;
+      color: #fff;
+
+      &:hover {
+        background: $color-accent-hover;
+      }
+    }
+  }
+
+  .form-note {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-align: center;
+    margin-top: $spacing-sm;
+  }
+
+  .empty-state {
+    padding: $spacing-xl;
+    text-align: center;
+    color: $color-text-tertiary;
+  }
+
+  .weapons-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .weapon-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-md;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+    border-left: 3px solid $color-accent;
+  }
+
+  .weapon-item__main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .weapon-item__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  .weapon-item__name {
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .weapon-item__serial {
+    font-family: $font-family-mono;
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .weapon-item__operator {
+    font-size: $font-size-sm;
+    color: $color-accent;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  .weapon-item__arrow {
+    width: 14px;
+    height: 14px;
+  }
+
+  .return-btn {
+    padding: $spacing-sm $spacing-md;
+    background: transparent;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      border-color: $color-accent;
+      color: $color-accent;
+    }
+  }
+
+  .info-panel {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-xl;
+  }
+
+  .info-panel__title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-lg;
+  }
+
+  .process-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-lg;
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .process-step {
+    display: flex;
+    gap: $spacing-md;
+  }
+
+  .process-step__number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: $color-accent;
+    color: #fff;
+    font-weight: $font-weight-bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .process-step__content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .process-step__title {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+  }
+
+  .process-step__desc {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    line-height: 1.4;
+  }
+</style>
