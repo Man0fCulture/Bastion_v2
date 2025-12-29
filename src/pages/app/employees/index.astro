@@ -2,10 +2,11 @@
 export const prerender = false;
 
 import AppLayout from '../../../layouts/AppLayout.astro';
-import { getEmployees } from '@/lib/db';
+import { getEmployees, getStores } from '@/lib/db';
 
 const user = Astro.locals.user!;
 const employees = getEmployees();
+const stores = getStores();
 
 const total = employees.length;
 const actifs = employees.filter(e => e.active).length;
@@ -13,8 +14,16 @@ const actifs = employees.filter(e => e.active).length;
 <AppLayout title="Agents" user={user}>
   <div class="employees-page">
     <div class="page-header">
-      <h1 class="page-title">Agents</h1>
-      <p class="page-subtitle">Gestion des effectifs et affectations</p>
+      <div class="page-header__left">
+        <h1 class="page-title">Agents</h1>
+        <p class="page-subtitle">Gestion des effectifs et affectations</p>
+      </div>
+      <button class="btn btn--primary" id="btn-add-agent">
+        <svg viewBox="0 0 24 24" class="btn__icon">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Ajouter un agent
+      </button>
     </div>
 
     <div class="stats-row">
@@ -28,57 +37,215 @@ const actifs = employees.filter(e => e.active).length;
       </div>
     </div>
 
-    <div class="employees-grid">
+    <div class="employees-grid" id="employees-grid">
       {employees.map(emp => (
-        <a href={`/app/employees/${emp.id}`} class="employee-card">
+        <div class="employee-card" data-id={emp.id}>
           <div class="employee-card__header">
             <div class="employee-card__avatar">
               {emp.firstname[0]}{emp.lastname[0]}
             </div>
-            <span class={`badge ${emp.active ? 'badge--success' : 'badge--default'}`}>
-              {emp.active ? 'Actif' : 'Inactif'}
-            </span>
+            <div class="employee-card__actions">
+              <select class="store-select" data-id={emp.id} title="Changer d'antenne">
+                {stores.map(store => (
+                  <option value={store.id} selected={store.id === emp.store_id}>{store.name}</option>
+                ))}
+              </select>
+              <button class="btn-icon btn-icon--danger btn-delete" data-id={emp.id} title="Supprimer">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <div class="employee-card__main">
-            <h3 class="employee-card__name">{emp.firstname} {emp.lastname}</h3>
-            <p class="employee-card__affectation">{emp.affectation}</p>
+          <a href={`/app/employees/${emp.id}`} class="employee-card__link">
+            <div class="employee-card__main">
+              <h3 class="employee-card__name">{emp.firstname} {emp.lastname}</h3>
+              <p class="employee-card__affectation">{emp.affectation}</p>
 
-            <div class="employee-card__info">
-              <div class="info-item">
-                <span class="info-label">Matricule</span>
-                <span class="info-value">{emp.matricule}</span>
+              <div class="employee-card__info">
+                <div class="info-item">
+                  <span class="info-label">Matricule</span>
+                  <span class="info-value">{emp.matricule}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Indicatif</span>
+                  <span class="info-value">{emp.indicatif}</span>
+                </div>
               </div>
-              <div class="info-item">
-                <span class="info-label">Indicatif</span>
-                <span class="info-value">{emp.indicatif}</span>
-              </div>
+
+              {(emp.casque_sn || emp.radio_motorola_sn || emp.v60_invisio_sn) && (
+                <div class="employee-card__equipment">
+                  {emp.casque_sn && <span class="equip-tag">Casque: {emp.casque_sn}</span>}
+                  {emp.radio_motorola_sn && <span class="equip-tag">Radio: {emp.radio_motorola_sn}</span>}
+                  {emp.v60_invisio_sn && <span class="equip-tag">V60: {emp.v60_invisio_sn}</span>}
+                  {emp.r30_invisio_sn && <span class="equip-tag">R30: {emp.r30_invisio_sn}</span>}
+                  {emp.cable_invisio_sn && <span class="equip-tag">Cable: {emp.cable_invisio_sn}</span>}
+                </div>
+              )}
             </div>
 
-            {(emp.casque_sn || emp.radio_motorola_sn || emp.v60_invisio_sn) && (
-              <div class="employee-card__equipment">
-                {emp.casque_sn && <span class="equip-tag">Casque: {emp.casque_sn}</span>}
-                {emp.radio_motorola_sn && <span class="equip-tag">Radio: {emp.radio_motorola_sn}</span>}
-                {emp.v60_invisio_sn && <span class="equip-tag">V60: {emp.v60_invisio_sn}</span>}
-                {emp.r30_invisio_sn && <span class="equip-tag">R30: {emp.r30_invisio_sn}</span>}
-                {emp.cable_invisio_sn && <span class="equip-tag">Cable: {emp.cable_invisio_sn}</span>}
-              </div>
-            )}
-          </div>
-
-          <div class="employee-card__footer">
-            <span>{emp.store_name}</span>
-            <span class="action-icon">
-              <svg viewBox="0 0 24 24" class="action-icon__svg">
-                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-              </svg>
-            </span>
-          </div>
-        </a>
+            <div class="employee-card__footer">
+              <span class="store-name">{emp.store_name}</span>
+              <span class={`badge ${emp.active ? 'badge--success' : 'badge--default'}`}>
+                {emp.active ? 'Actif' : 'Inactif'}
+              </span>
+            </div>
+          </a>
+        </div>
       ))}
     </div>
   </div>
+
+  <div class="modal" id="modal-add">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title">Ajouter un agent</h2>
+        <button class="btn-icon modal__close" id="modal-close">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <form id="form-add-agent" class="modal__form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstname">Prénom</label>
+            <input type="text" id="firstname" name="firstname" required />
+          </div>
+          <div class="form-group">
+            <label for="lastname">Nom</label>
+            <input type="text" id="lastname" name="lastname" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="matricule">Matricule</label>
+            <input type="text" id="matricule" name="matricule" pattern="[0-9]{7}" title="7 chiffres" required />
+          </div>
+          <div class="form-group">
+            <label for="rio">RIO</label>
+            <input type="text" id="rio" name="rio" pattern="[0-9]{7}" title="7 chiffres" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="indicatif">Indicatif</label>
+            <input type="text" id="indicatif" name="indicatif" placeholder="A 01" required />
+          </div>
+          <div class="form-group">
+            <label for="affectation">Affectation</label>
+            <input type="text" id="affectation" name="affectation" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="store_id">Antenne</label>
+          <select id="store_id" name="store_id" required>
+            {stores.map(store => (
+              <option value={store.id}>{store.name}</option>
+            ))}
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tel_pro">Tél. professionnel</label>
+            <input type="tel" id="tel_pro" name="tel_pro" />
+          </div>
+          <div class="form-group">
+            <label for="tel_neo">Tél. NEO</label>
+            <input type="tel" id="tel_neo" name="tel_neo" />
+          </div>
+        </div>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--secondary" id="btn-cancel">Annuler</button>
+          <button type="submit" class="btn btn--primary">Créer l'agent</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </AppLayout>
+
+<script>
+  const modal = document.getElementById('modal-add') as HTMLDivElement;
+  const btnAdd = document.getElementById('btn-add-agent') as HTMLButtonElement;
+  const btnClose = document.getElementById('modal-close') as HTMLButtonElement;
+  const btnCancel = document.getElementById('btn-cancel') as HTMLButtonElement;
+  const backdrop = modal.querySelector('.modal__backdrop') as HTMLDivElement;
+  const form = document.getElementById('form-add-agent') as HTMLFormElement;
+
+  function openModal() {
+    modal.classList.add('modal--open');
+  }
+
+  function closeModal() {
+    modal.classList.remove('modal--open');
+    form.reset();
+  }
+
+  btnAdd.addEventListener('click', openModal);
+  btnClose.addEventListener('click', closeModal);
+  btnCancel.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    const response = await fetch('/api/employees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (response.ok) {
+      window.location.reload();
+    } else {
+      alert('Erreur lors de la création');
+    }
+  });
+
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = (btn as HTMLButtonElement).dataset.id;
+      if (!confirm('Supprimer cet agent ?')) return;
+
+      const response = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        const card = document.querySelector(`.employee-card[data-id="${id}"]`);
+        card?.remove();
+      } else {
+        alert('Erreur lors de la suppression');
+      }
+    });
+  });
+
+  document.querySelectorAll('.store-select').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const target = e.target as HTMLSelectElement;
+      const id = target.dataset.id;
+      const storeId = target.value;
+      const storeName = target.options[target.selectedIndex].text;
+
+      const response = await fetch(`/api/employees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store_id: storeId })
+      });
+
+      if (response.ok) {
+        const card = document.querySelector(`.employee-card[data-id="${id}"]`);
+        const storeLabel = card?.querySelector('.store-name');
+        if (storeLabel) storeLabel.textContent = storeName;
+      } else {
+        alert('Erreur lors du changement d\'antenne');
+      }
+    });
+  });
+</script>
 
 <style lang="scss">
   @use '../../../styles/variables' as *;
@@ -90,6 +257,12 @@ const actifs = employees.filter(e => e.active).length;
     gap: $spacing-xl;
   }
 
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
   .page-title {
     font-family: $font-family-heading;
     font-size: $font-size-3xl;
@@ -99,6 +272,72 @@ const actifs = employees.filter(e => e.active).length;
 
   .page-subtitle {
     color: $color-text-secondary;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-lg;
+    border-radius: $radius-md;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all $transition-fast;
+    border: 1px solid transparent;
+  }
+
+  .btn--primary {
+    background: $color-accent;
+    color: $color-bg-primary;
+
+    &:hover {
+      background: lighten($color-accent, 10%);
+    }
+  }
+
+  .btn--secondary {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.2);
+    color: $color-text-primary;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .btn__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: $radius-sm;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: $color-text-tertiary;
+    transition: all $transition-fast;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: $color-text-primary;
+    }
+  }
+
+  .btn-icon--danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
   }
 
   .stats-row {
@@ -151,7 +390,6 @@ const actifs = employees.filter(e => e.active).length;
     flex-direction: column;
     @include glass-panel;
     border-radius: $radius-lg;
-    text-decoration: none;
     transition: all $transition-base;
 
     &:hover {
@@ -176,6 +414,38 @@ const actifs = employees.filter(e => e.active).length;
     @include flex-center;
     font-weight: $font-weight-bold;
     color: $color-text-secondary;
+  }
+
+  .employee-card__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  .store-select {
+    padding: $spacing-xs $spacing-sm;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $radius-sm;
+    color: $color-text-secondary;
+    font-size: $font-size-xs;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+    }
+  }
+
+  .employee-card__link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-decoration: none;
   }
 
   .employee-card__main {
@@ -245,6 +515,7 @@ const actifs = employees.filter(e => e.active).length;
     padding: $spacing-sm $spacing-lg;
     background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0 0 $radius-lg $radius-lg;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -252,21 +523,96 @@ const actifs = employees.filter(e => e.active).length;
     color: $color-text-secondary;
   }
 
-  .action-icon {
-    display: flex;
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
     align-items: center;
     justify-content: center;
-    color: $color-text-tertiary;
-    transition: all $transition-fast;
 
-    .employee-card:hover & {
-      transform: translateX(3px);
-      color: $color-text-primary;
+    &.modal--open {
+      display: flex;
     }
   }
 
-  .action-icon__svg {
-    width: 16px;
-    height: 16px;
+  .modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+  }
+
+  .modal__content {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    @include glass-panel;
+    border-radius: $radius-lg;
+    margin: $spacing-lg;
+  }
+
+  .modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-lg;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .modal__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+  }
+
+  .modal__form {
+    padding: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    label {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+
+    input, select {
+      padding: $spacing-sm $spacing-md;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: $radius-sm;
+      color: $color-text-primary;
+      font-size: $font-size-sm;
+
+      &:focus {
+        outline: none;
+        border-color: $color-accent;
+      }
+
+      &::placeholder {
+        color: $color-text-tertiary;
+      }
+    }
+  }
+
+  .modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacing-md;
+    margin-top: $spacing-md;
+    padding-top: $spacing-md;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 </style>

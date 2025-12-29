@@ -335,3 +335,57 @@ export function getStores() {
 export function getStore(id: string) {
   return MOCK_STORES.find(s => s.id === id) || null;
 }
+
+export function createEmployee(data: {
+  store_id: string;
+  firstname: string;
+  lastname: string;
+  matricule: string;
+  rio: string;
+  indicatif: string;
+  affectation: string;
+  tel_neo?: string;
+  tel_pro?: string;
+  active?: boolean;
+}) {
+  const store = MOCK_STORES.find(s => s.id === data.store_id);
+  const newId = String(Math.max(...MOCK_EMPLOYEES.map(e => Number(e.id))) + 1);
+  const newEmployee = {
+    id: newId,
+    store_id: data.store_id,
+    firstname: data.firstname,
+    lastname: data.lastname,
+    matricule: data.matricule,
+    rio: data.rio,
+    indicatif: data.indicatif,
+    affectation: data.affectation,
+    tel_neo: data.tel_neo,
+    tel_pro: data.tel_pro,
+    active: data.active ?? true,
+    store_name: store?.name || '',
+    casque_sn: undefined,
+    radio_motorola_sn: undefined,
+    v60_invisio_sn: undefined,
+    r30_invisio_sn: undefined,
+    cable_invisio_sn: undefined,
+  };
+  MOCK_EMPLOYEES.push(newEmployee);
+  return newEmployee;
+}
+
+export function deleteEmployee(id: string) {
+  const index = MOCK_EMPLOYEES.findIndex(e => e.id === id);
+  if (index === -1) return false;
+  MOCK_EMPLOYEES.splice(index, 1);
+  return true;
+}
+
+export function updateEmployeeStore(id: string, newStoreId: string) {
+  const employee = MOCK_EMPLOYEES.find(e => e.id === id);
+  if (!employee) return null;
+  const store = MOCK_STORES.find(s => s.id === newStoreId);
+  if (!store) return null;
+  employee.store_id = newStoreId;
+  employee.store_name = store.name;
+  return employee;
+}
