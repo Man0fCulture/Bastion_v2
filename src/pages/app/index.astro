@@ -2,193 +2,522 @@
 export const prerender = false;
 
 import AppLayout from '../../layouts/AppLayout.astro';
-import { getAssets, getEmployees, getClaims } from '@/lib/db';
+import Badge from '../../components/ui/Badge.astro';
+import { getAssets, getEmployees, getWeapons, getVehicles, getMissions, getAlerts, getStores } from '@/lib/db';
 
 const user = Astro.locals.user!;
-const assets = getAssets();
+
 const employees = getEmployees();
-const claims = getClaims();
+const weapons = getWeapons();
+const vehicles = getVehicles();
+const assets = getAssets();
+const missions = getMissions();
+const alerts = getAlerts({ dismissed: false });
+const stores = getStores();
 
-const totalAssets = assets.length;
-const available = assets.filter(a => a.state === 'AVAILABLE').length;
-const inRepair = assets.filter(a => a.state === 'IN_REPAIR').length;
-const pendingClaims = claims.filter(c => c.status === 'PENDING').length;
+const activeEmployees = employees.filter(e => e.active).length;
 
-const stateLabels: Record<string, string> = {
-  AVAILABLE: 'Disponible',
-  ASSIGNED: 'Assigné',
-  IN_REPAIR: 'Réparation',
-  LOST: 'Perdu',
-  RETIRED: 'Retiré'
+const weaponStats = {
+  total: weapons.length,
+  available: weapons.filter(w => w.state === 'AVAILABLE').length,
+  checkedOut: weapons.filter(w => w.state === 'CHECKED_OUT').length,
+  maintenance: weapons.filter(w => w.state === 'MAINTENANCE').length,
 };
 
-const stateVariants: Record<string, string> = {
-  AVAILABLE: 'success',
-  ASSIGNED: 'info',
-  IN_REPAIR: 'warning',
-  LOST: 'error',
-  RETIRED: 'default'
+const vehicleStats = {
+  total: vehicles.length,
+  available: vehicles.filter(v => v.state === 'AVAILABLE').length,
+  inUse: vehicles.filter(v => v.state === 'IN_USE').length,
+  maintenance: vehicles.filter(v => v.state === 'MAINTENANCE').length,
 };
+
+const missionStats = {
+  inProgress: missions.filter(m => m.status === 'IN_PROGRESS').length,
+  planned: missions.filter(m => m.status === 'PLANNED').length,
+  completed: missions.filter(m => m.status === 'COMPLETED').length,
+};
+
+const criticalAlerts = alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'HIGH');
+const activeMissions = missions.filter(m => m.status === 'IN_PROGRESS' || m.status === 'BRIEFING');
+const plannedMissions = missions.filter(m => m.status === 'PLANNED').slice(0, 3);
+
+const storeStats = stores.map(store => ({
+  ...store,
+  employees: employees.filter(e => e.store_id === store.id).length,
+  weapons: weapons.filter(w => w.store_id === store.id).length,
+  vehicles: vehicles.filter(v => v.store_id === store.id).length,
+}));
+
+const missionTypeLabels: Record<string, string> = {
+  INTERVENTION: 'Intervention',
+  SURVEILLANCE: 'Surveillance',
+  ESCORT: 'Escorte',
+  TRAINING: 'Entraînement',
+  PATROL: 'Patrouille'
+};
+
+const missionStatusLabels: Record<string, string> = {
+  PLANNED: 'Planifiée',
+  BRIEFING: 'Briefing',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminée',
+  CANCELLED: 'Annulée'
+};
+
+const missionStatusVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  PLANNED: 'default',
+  BRIEFING: 'warning',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'error'
+};
+
+const alertSeverityLabels: Record<string, string> = {
+  CRITICAL: 'Critique',
+  HIGH: 'Haute',
+  MEDIUM: 'Moyenne',
+  LOW: 'Basse'
+};
+
+const alertTypeIcons: Record<string, string> = {
+  EXPIRATION: '⏰',
+  MAINTENANCE: '🔧',
+  LOW_STOCK: '📦',
+  MISSION_UPCOMING: '📋'
+};
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
 ---
 <AppLayout title="Command Center" user={user}>
-  <div class="dashboard">
-    <div class="dashboard__header">
-      <h1 class="dashboard__title">Command Center</h1>
-      <p class="dashboard__subtitle">Vue d'ensemble du système</p>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card">
-        <span class="stat-value">{totalAssets}</span>
-        <span class="stat-label">Équipements</span>
+  <div class="command-center">
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="page-title">Command Center</h1>
+        <p class="page-subtitle">Vue d'ensemble opérationnelle</p>
       </div>
-      <div class="stat-card">
-        <span class="stat-value">{available}</span>
-        <span class="stat-label">Disponibles</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">{inRepair}</span>
-        <span class="stat-label">En réparation</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">{employees.length}</span>
-        <span class="stat-label">Agents</span>
-      </div>
-      <div class="stat-card stat-card--warning">
-        <span class="stat-value">{pendingClaims}</span>
-        <span class="stat-label">Demandes en attente</span>
+      <div class="header-time">
+        <span class="current-date" id="current-date"></span>
+        <span class="current-time" id="current-time"></span>
       </div>
     </div>
 
-    <div class="dashboard__section">
-      <div class="section-header">
-        <h2 class="section-title">Équipements récents</h2>
-        <a href="/app/assets" class="section-link">Voir tout →</a>
+    {criticalAlerts.length > 0 && (
+      <div class="alerts-banner">
+        <div class="alerts-banner__icon">⚠️</div>
+        <div class="alerts-banner__content">
+          <span class="alerts-banner__count">{criticalAlerts.length} alerte{criticalAlerts.length > 1 ? 's' : ''} prioritaire{criticalAlerts.length > 1 ? 's' : ''}</span>
+          <span class="alerts-banner__preview">{criticalAlerts[0].message}</span>
+        </div>
+        <a href="/app/alerts" class="alerts-banner__link">Voir tout →</a>
       </div>
-      <div class="assets-grid">
-        {assets.slice(0, 6).map(asset => (
-          <a href={`/app/assets/${asset.id}`} class="asset-card">
-            <div class="asset-card__main">
-              <div class="asset-card__header">
-                <h3 class="asset-card__name">{asset.name}</h3>
-                <span class={`badge badge--${stateVariants[asset.state]}`}>{stateLabels[asset.state]}</span>
-              </div>
-              <div class="asset-card__details">
-                <div class="detail-item">
-                  <span class="detail-label">Catégorie</span>
-                  <span class="detail-value">{asset.category}</span>
+    )}
+
+    <div class="stats-grid">
+      <div class="stat-card stat-card--primary">
+        <div class="stat-card__header">
+          <span class="stat-card__icon">👥</span>
+          <span class="stat-card__label">Personnel actif</span>
+        </div>
+        <div class="stat-card__value">{activeEmployees}</div>
+        <div class="stat-card__detail">{employees.length} total</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card__header">
+          <span class="stat-card__icon">🔫</span>
+          <span class="stat-card__label">Armurerie</span>
+        </div>
+        <div class="stat-card__value">{weaponStats.available}<span class="stat-card__total">/{weaponStats.total}</span></div>
+        <div class="stat-card__breakdown">
+          <span class="breakdown-item breakdown-item--info">{weaponStats.checkedOut} sorties</span>
+          <span class="breakdown-item breakdown-item--warning">{weaponStats.maintenance} maint.</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card__header">
+          <span class="stat-card__icon">🚗</span>
+          <span class="stat-card__label">Véhicules</span>
+        </div>
+        <div class="stat-card__value">{vehicleStats.available}<span class="stat-card__total">/{vehicleStats.total}</span></div>
+        <div class="stat-card__breakdown">
+          <span class="breakdown-item breakdown-item--info">{vehicleStats.inUse} en service</span>
+          <span class="breakdown-item breakdown-item--warning">{vehicleStats.maintenance} maint.</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card__header">
+          <span class="stat-card__icon">📋</span>
+          <span class="stat-card__label">Missions</span>
+        </div>
+        <div class="stat-card__value">{missionStats.inProgress}</div>
+        <div class="stat-card__breakdown">
+          <span class="breakdown-item">{missionStats.planned} planifiées</span>
+          <span class="breakdown-item breakdown-item--success">{missionStats.completed} terminées</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel missions-panel">
+        <div class="panel__header">
+          <h2 class="panel__title">Missions actives</h2>
+          <a href="/app/missions" class="panel__link">Voir tout</a>
+        </div>
+        {activeMissions.length === 0 ? (
+          <div class="panel__empty">Aucune mission en cours</div>
+        ) : (
+          <div class="missions-list">
+            {activeMissions.map(mission => (
+              <a href={`/app/missions/${mission.id}`} class="mission-card mission-card--active">
+                <div class="mission-card__status">
+                  <Badge variant={missionStatusVariants[mission.status]} size="sm">
+                    {missionStatusLabels[mission.status]}
+                  </Badge>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Localisation</span>
-                  <span class="detail-value">{asset.location_name}</span>
+                <h3 class="mission-card__name">{mission.name}</h3>
+                <div class="mission-card__meta">
+                  <span class="mission-card__type">{missionTypeLabels[mission.type]}</span>
+                  {mission.started_at && (
+                    <span class="mission-card__time">Début : {formatTime(mission.started_at)}</span>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {plannedMissions.length > 0 && (
+          <>
+            <div class="panel__divider"></div>
+            <h3 class="panel__subtitle">À venir</h3>
+            <div class="upcoming-list">
+              {plannedMissions.map(mission => (
+                <a href={`/app/missions/${mission.id}`} class="upcoming-item">
+                  <span class="upcoming-item__name">{mission.name}</span>
+                  <span class="upcoming-item__date">{formatDate(mission.scheduled_at)}</span>
+                </a>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div class="panel alerts-panel">
+        <div class="panel__header">
+          <h2 class="panel__title">Alertes</h2>
+          <a href="/app/alerts" class="panel__link">{alerts.length} actives</a>
+        </div>
+        {alerts.length === 0 ? (
+          <div class="panel__empty panel__empty--success">Aucune alerte active</div>
+        ) : (
+          <div class="alerts-list">
+            {alerts.slice(0, 5).map(alert => (
+              <div class="alert-item" data-severity={alert.severity}>
+                <span class="alert-item__icon">{alertTypeIcons[alert.type]}</span>
+                <div class="alert-item__content">
+                  <span class="alert-item__message">{alert.message}</span>
+                  <span class="alert-item__severity">{alertSeverityLabels[alert.severity]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div class="panel stores-panel">
+        <div class="panel__header">
+          <h2 class="panel__title">Antennes</h2>
+        </div>
+        <div class="stores-grid">
+          {storeStats.map(store => (
+            <div class="store-card">
+              <h4 class="store-card__name">{store.name}</h4>
+              <span class="store-card__code">{store.code}</span>
+              <div class="store-card__stats">
+                <div class="store-stat">
+                  <span class="store-stat__value">{store.employees}</span>
+                  <span class="store-stat__label">agents</span>
+                </div>
+                <div class="store-stat">
+                  <span class="store-stat__value">{store.weapons}</span>
+                  <span class="store-stat__label">armes</span>
+                </div>
+                <div class="store-stat">
+                  <span class="store-stat__value">{store.vehicles}</span>
+                  <span class="store-stat__label">véhicules</span>
                 </div>
               </div>
             </div>
-            <div class="asset-card__footer">
-              <span class="serial-number">{asset.serial_number ? `S/N: ${asset.serial_number}` : ''}</span>
-              <span class="action-icon">→</span>
-            </div>
-          </a>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
 
-    <div class="dashboard__section">
-      <div class="section-header">
-        <h2 class="section-title">Agents</h2>
-        <a href="/app/employees" class="section-link">Voir tout →</a>
-      </div>
-      <div class="employees-grid">
-        {employees.slice(0, 4).map(emp => (
-          <a href={`/app/employees/${emp.id}`} class="employee-card-mini">
-            <div class="employee-avatar">{emp.firstname[0]}{emp.lastname[0]}</div>
-            <div class="employee-info">
-              <span class="employee-name">{emp.firstname} {emp.lastname}</span>
-              <span class="employee-affectation">{emp.affectation}</span>
-            </div>
-            <span class="action-icon">→</span>
-          </a>
-        ))}
+    <div class="quick-actions">
+      <h2 class="quick-actions__title">Actions rapides</h2>
+      <div class="actions-grid">
+        <a href="/app/missions/new" class="action-card">
+          <span class="action-card__icon">📋</span>
+          <span class="action-card__label">Nouvelle mission</span>
+        </a>
+        <a href="/app/armory/checkout" class="action-card">
+          <span class="action-card__icon">🔫</span>
+          <span class="action-card__label">Sortie arme</span>
+        </a>
+        <a href="/app/vehicles" class="action-card">
+          <span class="action-card__icon">🚗</span>
+          <span class="action-card__label">Réserver véhicule</span>
+        </a>
+        <a href="/app/employees" class="action-card">
+          <span class="action-card__icon">👥</span>
+          <span class="action-card__label">Gérer effectifs</span>
+        </a>
       </div>
     </div>
   </div>
 </AppLayout>
 
+<script>
+function updateTime() {
+  const now = new Date();
+  const dateEl = document.getElementById('current-date');
+  const timeEl = document.getElementById('current-time');
+
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
+  if (timeEl) {
+    timeEl.textContent = now.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+}
+
+updateTime();
+setInterval(updateTime, 1000);
+</script>
+
 <style lang="scss">
   @use '../../styles/variables' as *;
   @use '../../styles/mixins' as *;
 
-  .dashboard {
+  .command-center {
     display: flex;
     flex-direction: column;
     gap: $spacing-xl;
   }
 
-  .dashboard__header {
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: $spacing-md;
   }
 
-  .dashboard__title {
+  .page-title {
     font-family: $font-family-heading;
     font-size: $font-size-3xl;
     text-transform: uppercase;
     margin-bottom: $spacing-xs;
   }
 
-  .dashboard__subtitle {
+  .page-subtitle {
     color: $color-text-secondary;
   }
 
-  .stats-row {
-    display: flex;
-    gap: $spacing-lg;
-    flex-wrap: wrap;
-  }
-
-  .stat-card {
-    @include glass-panel;
-    padding: $spacing-lg $spacing-xl;
-    border-radius: $radius-lg;
+  .header-time {
+    text-align: right;
     display: flex;
     flex-direction: column;
-    gap: $spacing-xs;
-    min-width: 140px;
-
-    &--warning .stat-value {
-      color: $color-warning;
-    }
+    gap: 2px;
   }
 
-  .stat-value {
+  .current-date {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    text-transform: capitalize;
+  }
+
+  .current-time {
     font-size: $font-size-2xl;
-    font-weight: $font-weight-bold;
+    font-family: $font-family-mono;
     color: $color-accent;
+    font-weight: $font-weight-bold;
   }
 
-  .stat-label {
+  .alerts-banner {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    padding: $spacing-md $spacing-lg;
+    background: rgba($color-error, 0.1);
+    border: 1px solid rgba($color-error, 0.3);
+    border-radius: $radius-lg;
+  }
+
+  .alerts-banner__icon {
+    font-size: 1.5rem;
+  }
+
+  .alerts-banner__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .alerts-banner__count {
+    font-weight: $font-weight-semibold;
+    color: $color-error;
+  }
+
+  .alerts-banner__preview {
     font-size: $font-size-sm;
     color: $color-text-secondary;
   }
 
-  .dashboard__section {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-lg;
+  .alerts-banner__link {
+    font-size: $font-size-sm;
+    color: $color-error;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
-  .section-header {
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-lg;
+
+    @media (max-width: 900px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .stat-card {
+    @include glass-panel;
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    &--primary {
+      background: linear-gradient(135deg, rgba($color-accent, 0.15), rgba($color-accent, 0.05));
+      border-color: rgba($color-accent, 0.3);
+    }
+  }
+
+  .stat-card__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  .stat-card__icon {
+    font-size: 1.25rem;
+  }
+
+  .stat-card__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-card__value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+  }
+
+  .stat-card__total {
+    font-size: $font-size-lg;
+    color: $color-text-tertiary;
+    font-weight: $font-weight-regular;
+  }
+
+  .stat-card__detail {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+
+  .stat-card__breakdown {
+    display: flex;
+    gap: $spacing-md;
+  }
+
+  .breakdown-item {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+
+    &--info { color: $color-accent; }
+    &--warning { color: $color-warning; }
+    &--success { color: $color-success; }
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: $spacing-xl;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .panel {
+    @include glass-panel;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+  }
+
+  .panel__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: $spacing-lg;
   }
 
-  .section-title {
-    font-family: $font-family-heading;
-    font-size: $font-size-xl;
+  .panel__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .section-link {
+  .panel__link {
     font-size: $font-size-sm;
     color: $color-accent;
     text-decoration: none;
@@ -198,116 +527,244 @@ const stateVariants: Record<string, string> = {
     }
   }
 
-  .assets-grid {
-    display: grid;
-    gap: $spacing-lg;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
+  .panel__empty {
+    padding: $spacing-xl;
+    text-align: center;
+    color: $color-text-tertiary;
+    font-style: italic;
 
-  .employees-grid {
-    display: grid;
-    gap: $spacing-md;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0 $spacing-sm;
-    height: 20px;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-bold;
-    border-radius: $radius-sm;
-    text-transform: uppercase;
-  }
-
-  .badge--success { background: rgba($color-success, 0.15); color: $color-success; }
-  .badge--info { background: rgba($color-accent, 0.15); color: $color-accent; }
-  .badge--warning { background: rgba($color-warning, 0.15); color: $color-warning; }
-  .badge--error { background: rgba($color-error, 0.15); color: $color-error; }
-  .badge--default { background: $color-bg-elevated; color: $color-text-secondary; }
-
-  .asset-card {
-    display: flex;
-    flex-direction: column;
-    @include glass-panel;
-    border-radius: $radius-lg;
-    text-decoration: none;
-    transition: all $transition-base;
-
-    &:hover {
-      border-color: rgba($color-accent, 0.5);
-      transform: translateY(-4px);
+    &--success {
+      color: $color-success;
     }
   }
 
-  .asset-card__main {
-    padding: $spacing-lg;
+  .panel__divider {
+    height: 1px;
+    background: $color-border;
+    margin: $spacing-lg 0;
   }
 
-  .asset-card__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: $spacing-sm;
+  .panel__subtitle {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     margin-bottom: $spacing-md;
   }
 
-  .asset-card__name {
-    font-size: $font-size-base;
-    font-weight: $font-weight-bold;
-    color: $color-text-primary;
-  }
-
-  .asset-card__details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  .missions-list {
+    display: flex;
+    flex-direction: column;
     gap: $spacing-md;
   }
 
-  .detail-item {
+  .mission-card {
+    display: block;
+    padding: $spacing-md;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    &--active {
+      border-left: 3px solid $color-accent;
+      padding-left: calc($spacing-md - 3px);
+    }
+  }
+
+  .mission-card__status {
+    margin-bottom: $spacing-xs;
+  }
+
+  .mission-card__name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+    margin-bottom: $spacing-xs;
+  }
+
+  .mission-card__meta {
+    display: flex;
+    gap: $spacing-md;
+    font-size: $font-size-sm;
+  }
+
+  .mission-card__type {
+    color: $color-text-tertiary;
+  }
+
+  .mission-card__time {
+    color: $color-text-secondary;
+    font-family: $font-family-mono;
+  }
+
+  .upcoming-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .upcoming-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-sm 0;
+    text-decoration: none;
+    border-bottom: 1px solid $color-border;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover .upcoming-item__name {
+      color: $color-accent;
+    }
+  }
+
+  .upcoming-item__name {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+    transition: color $transition-fast;
+  }
+
+  .upcoming-item__date {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-md;
+    padding: $spacing-sm;
+    border-radius: $radius-md;
+    background: rgba(255, 255, 255, 0.02);
+
+    &[data-severity="CRITICAL"],
+    &[data-severity="HIGH"] {
+      background: rgba($color-error, 0.05);
+      border-left: 2px solid $color-error;
+    }
+
+    &[data-severity="MEDIUM"] {
+      border-left: 2px solid $color-warning;
+    }
+  }
+
+  .alert-item__icon {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .alert-item__content {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
 
-  .detail-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    color: $color-text-tertiary;
-  }
-
-  .detail-value {
+  .alert-item__message {
     font-size: $font-size-sm;
-    color: $color-text-secondary;
+    color: $color-text-primary;
+    line-height: 1.4;
   }
 
-  .asset-card__footer {
-    padding: $spacing-sm $spacing-lg;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .serial-number {
-    font-family: $font-family-mono;
-    font-size: 0.75rem;
-    color: $color-text-muted;
-  }
-
-  .action-icon {
+  .alert-item__severity {
+    font-size: $font-size-xs;
     color: $color-text-tertiary;
   }
 
-  .employee-card-mini {
-    @include glass-panel;
-    border-radius: $radius-lg;
-    padding: $spacing-md $spacing-lg;
-    display: flex;
-    align-items: center;
+  .stores-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: $spacing-md;
+  }
+
+  .store-card {
+    padding: $spacing-md;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+    border: 1px solid $color-border;
+  }
+
+  .store-card__name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .store-card__code {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .store-card__stats {
+    display: flex;
+    gap: $spacing-md;
+    margin-top: $spacing-sm;
+    padding-top: $spacing-sm;
+    border-top: 1px solid $color-border;
+  }
+
+  .store-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .store-stat__value {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $color-accent;
+  }
+
+  .store-stat__label {
+    font-size: 0.65rem;
+    color: $color-text-tertiary;
+  }
+
+  .quick-actions {
+    margin-top: $spacing-lg;
+  }
+
+  .quick-actions__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: $spacing-lg;
+  }
+
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-md;
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .action-card {
+    @include glass-panel;
+    padding: $spacing-lg;
+    border-radius: $radius-lg;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-sm;
     text-decoration: none;
     transition: all $transition-base;
 
@@ -317,33 +774,13 @@ const stateVariants: Record<string, string> = {
     }
   }
 
-  .employee-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: $radius-md;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    @include flex-center;
-    font-weight: $font-weight-bold;
+  .action-card__icon {
+    font-size: 1.5rem;
+  }
+
+  .action-card__label {
+    font-size: $font-size-sm;
     color: $color-text-secondary;
-    font-size: $font-size-sm;
-  }
-
-  .employee-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .employee-name {
-    font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
-    color: $color-text-primary;
-  }
-
-  .employee-affectation {
-    font-size: $font-size-xs;
-    color: $color-text-tertiary;
+    text-align: center;
   }
 </style>

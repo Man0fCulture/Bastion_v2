@@ -1,0 +1,156 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getMissions } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const missions = getMissions();
+
+const statusLabels: Record<string, string> = {
+  PLANNED: 'Planifiée',
+  BRIEFING: 'Briefing',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminée',
+  CANCELLED: 'Annulée'
+};
+
+const statusVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  PLANNED: 'default',
+  BRIEFING: 'warning',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'error'
+};
+
+const typeLabels: Record<string, string> = {
+  INTERVENTION: 'Intervention',
+  SURVEILLANCE: 'Surveillance',
+  ESCORT: 'Escorte',
+  TRAINING: 'Entraînement',
+  PATROL: 'Patrouille'
+};
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
+---
+<AppLayout title="Missions" user={user}>
+  <div class="missions-page">
+    <div class="page-header">
+      <h1 class="page-title">Missions</h1>
+      <p class="page-subtitle">Historique et suivi des opérations</p>
+    </div>
+
+    <div class="missions-table">
+      <div class="table-header">
+        <span>Mission</span>
+        <span>Type</span>
+        <span>Date</span>
+        <span>Statut</span>
+      </div>
+      {missions.map(mission => (
+        <a href={`/app/missions/${mission.id}`} class="table-row">
+          <span class="table-cell table-cell--name">{mission.name}</span>
+          <span class="table-cell table-cell--type">{typeLabels[mission.type]}</span>
+          <span class="table-cell table-cell--date">{formatDate(mission.scheduled_at)}</span>
+          <span class="table-cell table-cell--status">
+            <Badge variant={statusVariants[mission.status]} size="sm">
+              {statusLabels[mission.status]}
+            </Badge>
+          </span>
+        </a>
+      ))}
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .missions-page {
+    max-width: 1000px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+  }
+
+  .missions-table {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    overflow: hidden;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 120px;
+    gap: $spacing-lg;
+    padding: $spacing-md $spacing-lg;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 120px;
+    gap: $spacing-lg;
+    padding: $spacing-lg;
+    text-decoration: none;
+    border-bottom: 1px solid $color-border;
+    transition: background $transition-fast;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  .table-cell {
+    display: flex;
+    align-items: center;
+  }
+
+  .table-cell--name {
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .table-cell--type {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .table-cell--date {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    font-family: $font-family-mono;
+  }
+</style>

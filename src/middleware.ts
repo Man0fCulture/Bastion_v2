@@ -2,8 +2,9 @@ import { defineMiddleware } from 'astro:middleware';
 
 const MOCK_USER = {
   id: 'demo-user-id',
-  email: 'demo@bastion.fr',
-  role: 'ADMIN' as const,
+  email: 'commandant@raid.gouv.fr',
+  role: 'UNIT_CHIEF' as const,
+  password_hash: '',
   employee_id: undefined,
   created_at: new Date(),
   updated_at: new Date()

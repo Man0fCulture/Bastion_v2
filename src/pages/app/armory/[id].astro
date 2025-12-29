@@ -1,0 +1,439 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getWeapon, getWeaponCheckouts } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const { id } = Astro.params;
+const weapon = getWeapon(id!);
+
+if (!weapon) {
+  return Astro.redirect('/app/armory');
+}
+
+const checkouts = getWeaponCheckouts({ weapon_id: id });
+
+const stateLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  CHECKED_OUT: 'Sortie',
+  MAINTENANCE: 'Maintenance',
+  LOST: 'Perdue'
+};
+
+const stateVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  AVAILABLE: 'success',
+  CHECKED_OUT: 'info',
+  MAINTENANCE: 'warning',
+  LOST: 'error'
+};
+
+const typeLabels: Record<string, string> = {
+  PISTOL: 'Pistolet',
+  RIFLE: 'Fusil d\'assaut',
+  SHOTGUN: 'Fusil à pompe',
+  SMG: 'Pistolet-mitrailleur',
+  SNIPER: 'Fusil de précision',
+  OTHER: 'Autre'
+};
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(date));
+}
+---
+<AppLayout title={weapon.name} user={user}>
+  <div class="weapon-detail">
+    <div class="page-header">
+      <a href="/app/armory" class="back-link">← Retour à l'armurerie</a>
+    </div>
+
+    <div class="detail-grid">
+      <div class="main-section">
+        <div class="detail-card">
+          <div class="detail-card__header">
+            <div class="detail-card__title-row">
+              <span class="detail-card__type">{typeLabels[weapon.type]}</span>
+              <Badge variant={stateVariants[weapon.state]} size="sm">
+                {stateLabels[weapon.state]}
+              </Badge>
+            </div>
+            <h1 class="detail-card__title">{weapon.name}</h1>
+            <span class="detail-card__serial">{weapon.serial_number}</span>
+          </div>
+
+          {weapon.description && (
+            <div class="detail-card__description">
+              <p>{weapon.description}</p>
+            </div>
+          )}
+
+          <div class="detail-card__specs">
+            <div class="spec-item">
+              <span class="spec-item__label">Calibre</span>
+              <span class="spec-item__value">{weapon.caliber}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-item__label">Nombre de tirs</span>
+              <span class="spec-item__value">{weapon.shot_count.toLocaleString()}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-item__label">Dernière maintenance</span>
+              <span class="spec-item__value">{weapon.last_maintenance ? formatDate(weapon.last_maintenance) : '-'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-item__label">Prochaine maintenance</span>
+              <span class="spec-item__value">{weapon.next_maintenance ? formatDate(weapon.next_maintenance) : '-'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-item__label">Antenne</span>
+              <span class="spec-item__value">{weapon.store?.name || '-'}</span>
+            </div>
+          </div>
+        </div>
+
+        {weapon.photos && weapon.photos.length > 0 && (
+          <div class="detail-card">
+            <h2 class="detail-card__section-title">Photos</h2>
+            <div class="photos-grid">
+              {weapon.photos.map(photo => (
+                <div class="photo-placeholder">
+                  <span class="photo-placeholder__icon">📷</span>
+                  <span class="photo-placeholder__text">{photo.storage_key}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div class="side-section">
+        <div class="detail-card">
+          <h2 class="detail-card__section-title">Assignation</h2>
+          {weapon.assigned_to ? (
+            <a href={`/app/employees/${weapon.assigned_to.id}`} class="assignee-card">
+              <div class="assignee-card__avatar">
+                {weapon.assigned_to.firstname.charAt(0)}{weapon.assigned_to.lastname.charAt(0)}
+              </div>
+              <div class="assignee-card__info">
+                <span class="assignee-card__name">{weapon.assigned_to.firstname} {weapon.assigned_to.lastname}</span>
+                <span class="assignee-card__detail">{weapon.assigned_to.indicatif} · {weapon.assigned_to.matricule}</span>
+              </div>
+            </a>
+          ) : (
+            <p class="no-assignment">Non assignée</p>
+          )}
+        </div>
+
+        <div class="detail-card">
+          <h2 class="detail-card__section-title">Actions</h2>
+          <div class="actions-list">
+            {weapon.state === 'AVAILABLE' && (
+              <button class="action-btn action-btn--primary">Sortir l'arme</button>
+            )}
+            {weapon.state === 'CHECKED_OUT' && (
+              <button class="action-btn action-btn--primary">Retourner l'arme</button>
+            )}
+            <button class="action-btn">Modifier</button>
+            <button class="action-btn">Ajouter photo</button>
+            {weapon.state !== 'MAINTENANCE' && (
+              <button class="action-btn action-btn--warning">Envoyer en maintenance</button>
+            )}
+          </div>
+        </div>
+
+        {checkouts.length > 0 && (
+          <div class="detail-card">
+            <h2 class="detail-card__section-title">Historique sorties</h2>
+            <div class="history-list">
+              {checkouts.slice(0, 5).map(checkout => (
+                <div class="history-item">
+                  <span class="history-item__status">{checkout.status}</span>
+                  <span class="history-item__ammo">{checkout.ammo_out} cartouches</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .weapon-detail {
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+
+  .back-link {
+    color: $color-text-secondary;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    transition: color $transition-fast;
+
+    &:hover {
+      color: $color-text-primary;
+    }
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: $spacing-xl;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .main-section, .side-section {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .detail-card {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-xl;
+  }
+
+  .detail-card__header {
+    margin-bottom: $spacing-xl;
+  }
+
+  .detail-card__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-sm;
+  }
+
+  .detail-card__type {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-card__title {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .detail-card__serial {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .detail-card__description {
+    margin-bottom: $spacing-xl;
+    padding: $spacing-lg;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+
+    p {
+      color: $color-text-secondary;
+      line-height: 1.6;
+    }
+  }
+
+  .detail-card__section-title {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $color-text-secondary;
+    margin-bottom: $spacing-lg;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .detail-card__specs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+  }
+
+  .spec-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .spec-item__label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .spec-item__value {
+    font-size: $font-size-base;
+    color: $color-text-primary;
+    font-family: $font-family-mono;
+  }
+
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: $spacing-md;
+  }
+
+  .photo-placeholder {
+    aspect-ratio: 4/3;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed $color-border;
+    border-radius: $radius-md;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+  }
+
+  .photo-placeholder__icon {
+    font-size: 1.5rem;
+    opacity: 0.5;
+  }
+
+  .photo-placeholder__text {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-align: center;
+    padding: 0 $spacing-sm;
+    word-break: break-all;
+  }
+
+  .assignee-card {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .assignee-card__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $color-accent 0%, $color-accent-light 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .assignee-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .assignee-card__name {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+
+  .assignee-card__detail {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .no-assignment {
+    color: $color-text-tertiary;
+    font-style: italic;
+  }
+
+  .actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .action-btn {
+    width: 100%;
+    padding: $spacing-md;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: $color-text-primary;
+    }
+
+    &--primary {
+      background: $color-accent;
+      border-color: $color-accent;
+      color: #fff;
+
+      &:hover {
+        background: $color-accent-hover;
+      }
+    }
+
+    &--warning {
+      color: $color-warning;
+      border-color: rgba($color-warning, 0.3);
+
+      &:hover {
+        background: rgba($color-warning, 0.1);
+      }
+    }
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border;
+    font-size: $font-size-sm;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .history-item__status {
+    color: $color-text-secondary;
+  }
+
+  .history-item__ammo {
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+</style>

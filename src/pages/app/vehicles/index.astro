@@ -1,0 +1,229 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getVehicles } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const vehicles = getVehicles();
+
+const totalVehicles = vehicles.length;
+const availableVehicles = vehicles.filter(v => v.state === 'AVAILABLE').length;
+const inUseVehicles = vehicles.filter(v => v.state === 'IN_USE').length;
+const maintenanceVehicles = vehicles.filter(v => v.state === 'MAINTENANCE').length;
+
+const stateLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  IN_USE: 'En service',
+  MAINTENANCE: 'Maintenance',
+  OUT_OF_SERVICE: 'Hors service'
+};
+
+const stateVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  AVAILABLE: 'success',
+  IN_USE: 'info',
+  MAINTENANCE: 'warning',
+  OUT_OF_SERVICE: 'error'
+};
+
+const typeLabels: Record<string, string> = {
+  CAR: 'Véhicule léger',
+  VAN: 'Fourgon',
+  TRUCK: 'Camion',
+  MOTORCYCLE: 'Moto',
+  ARMORED: 'Blindé'
+};
+---
+<AppLayout title="Véhicules" user={user}>
+  <div class="vehicles-page">
+    <div class="page-header">
+      <h1 class="page-title">Véhicules</h1>
+      <p class="page-subtitle">Gestion de la flotte</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-card__value">{totalVehicles}</span>
+        <span class="stat-card__label">Total</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{availableVehicles}</span>
+        <span class="stat-card__label">Disponibles</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{inUseVehicles}</span>
+        <span class="stat-card__label">En service</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{maintenanceVehicles}</span>
+        <span class="stat-card__label">Maintenance</span>
+      </div>
+    </div>
+
+    <div class="vehicles-grid">
+      {vehicles.map(vehicle => (
+        <a href={`/app/vehicles/${vehicle.id}`} class="vehicle-card">
+          <div class="vehicle-card__header">
+            <span class="vehicle-card__type">{typeLabels[vehicle.type]}</span>
+            <Badge variant={stateVariants[vehicle.state]} size="sm">
+              {stateLabels[vehicle.state]}
+            </Badge>
+          </div>
+          <div class="vehicle-card__body">
+            <h3 class="vehicle-card__name">{vehicle.name}</h3>
+            <div class="vehicle-card__details">
+              <div class="vehicle-card__detail">
+                <span class="vehicle-card__detail-label">Immatriculation</span>
+                <span class="vehicle-card__detail-value">{vehicle.registration}</span>
+              </div>
+              <div class="vehicle-card__detail">
+                <span class="vehicle-card__detail-label">Kilométrage</span>
+                <span class="vehicle-card__detail-value">{vehicle.mileage.toLocaleString()} km</span>
+              </div>
+            </div>
+          </div>
+          <div class="vehicle-card__footer">
+            <span class="vehicle-card__arrow">→</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .vehicles-page {
+    max-width: 1400px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: $spacing-lg;
+    margin-bottom: $spacing-2xl;
+  }
+
+  .stat-card {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .stat-card__value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    font-family: $font-family-mono;
+  }
+
+  .stat-card__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .vehicles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .vehicle-card {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    text-decoration: none;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: $color-border-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  .vehicle-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
+  }
+
+  .vehicle-card__type {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .vehicle-card__body {
+    margin-bottom: $spacing-lg;
+  }
+
+  .vehicle-card__name {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .vehicle-card__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+  }
+
+  .vehicle-card__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .vehicle-card__detail-label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .vehicle-card__detail-value {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+    font-family: $font-family-mono;
+  }
+
+  .vehicle-card__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: $spacing-md;
+    border-top: 1px solid $color-border;
+  }
+
+  .vehicle-card__arrow {
+    color: $color-text-tertiary;
+    transition: transform $transition-fast;
+
+    .vehicle-card:hover & {
+      transform: translateX(4px);
+      color: $color-text-primary;
+    }
+  }
+</style>

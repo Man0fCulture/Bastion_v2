@@ -1,0 +1,203 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getAlerts } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const alerts = getAlerts({ dismissed: false });
+
+const severityLabels: Record<string, string> = {
+  CRITICAL: 'Critique',
+  HIGH: 'Haute',
+  MEDIUM: 'Moyenne',
+  LOW: 'Basse'
+};
+
+const severityVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  CRITICAL: 'error',
+  HIGH: 'error',
+  MEDIUM: 'warning',
+  LOW: 'default'
+};
+
+const typeLabels: Record<string, string> = {
+  EXPIRATION: 'Péremption',
+  MAINTENANCE: 'Maintenance',
+  LOW_STOCK: 'Stock bas',
+  MISSION_UPCOMING: 'Mission'
+};
+
+const typeIcons: Record<string, string> = {
+  EXPIRATION: '⏰',
+  MAINTENANCE: '🔧',
+  LOW_STOCK: '📦',
+  MISSION_UPCOMING: '📋'
+};
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'short'
+  }).format(new Date(date));
+}
+---
+<AppLayout title="Alertes" user={user}>
+  <div class="alerts-page">
+    <div class="page-header">
+      <h1 class="page-title">Alertes</h1>
+      <p class="page-subtitle">{alerts.length} alerte{alerts.length > 1 ? 's' : ''} active{alerts.length > 1 ? 's' : ''}</p>
+    </div>
+
+    {alerts.length === 0 ? (
+      <div class="empty-state">
+        <span class="empty-state__icon">✓</span>
+        <p class="empty-state__text">Aucune alerte active</p>
+      </div>
+    ) : (
+      <div class="alerts-list">
+        {alerts.map(alert => (
+          <div class="alert-card" data-severity={alert.severity}>
+            <div class="alert-card__icon">{typeIcons[alert.type]}</div>
+            <div class="alert-card__content">
+              <div class="alert-card__header">
+                <span class="alert-card__type">{typeLabels[alert.type]}</span>
+                <Badge variant={severityVariants[alert.severity]} size="sm">
+                  {severityLabels[alert.severity]}
+                </Badge>
+              </div>
+              <p class="alert-card__message">{alert.message}</p>
+              {alert.due_date && (
+                <span class="alert-card__date">Échéance : {formatDate(alert.due_date)}</span>
+              )}
+            </div>
+            <button class="alert-card__dismiss" title="Ignorer">×</button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .alerts-page {
+    max-width: 800px;
+  }
+
+  .page-header {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-4xl;
+    text-align: center;
+  }
+
+  .empty-state__icon {
+    font-size: 3rem;
+    margin-bottom: $spacing-lg;
+    opacity: 0.5;
+  }
+
+  .empty-state__text {
+    color: $color-text-tertiary;
+  }
+
+  .alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .alert-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: $spacing-lg;
+    align-items: flex-start;
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    transition: border-color $transition-fast;
+
+    &[data-severity="CRITICAL"],
+    &[data-severity="HIGH"] {
+      border-left: 3px solid $color-error;
+    }
+
+    &[data-severity="MEDIUM"] {
+      border-left: 3px solid $color-warning;
+    }
+  }
+
+  .alert-card__icon {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .alert-card__content {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .alert-card__header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  .alert-card__type {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .alert-card__message {
+    font-size: $font-size-base;
+    color: $color-text-primary;
+    line-height: 1.5;
+  }
+
+  .alert-card__date {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+  }
+
+  .alert-card__dismiss {
+    background: none;
+    border: none;
+    color: $color-text-tertiary;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: $spacing-xs;
+    border-radius: $radius-sm;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: $color-text-primary;
+    }
+  }
+</style>

@@ -9,13 +9,47 @@ interface Props {
 
 const { title, user } = Astro.props;
 
-const navItems = [
-  { label: 'Command Center', href: '/app', exact: true },
-  { label: 'Équipements', href: '/app/assets' },
-  { label: 'Demandes', href: '/app/claims', role: 'MANAGER' }, // Assuming logic: != EMPLOYEE means MANAGER/ADMIN usually? Or simplified check
-  { label: 'Agents', href: '/app/employees' },
-  { label: 'Antennes', href: '/app/stores', role: 'ADMIN' },
+import { getActiveAlertCount } from '../lib/db';
+
+const alertCount = getActiveAlertCount();
+
+const navSections = [
+  {
+    label: 'Opérations',
+    items: [
+      { label: 'Command Center', href: '/app', exact: true },
+      { label: 'Planning', href: '/app/planning' },
+      { label: 'Missions', href: '/app/missions' },
+    ]
+  },
+  {
+    label: 'Ressources',
+    items: [
+      { label: 'Armurerie', href: '/app/armory', roles: ['UNIT_CHIEF', 'GROUP_CHIEF', 'ARMORER'] },
+      { label: 'Véhicules', href: '/app/vehicles' },
+      { label: 'Équipements', href: '/app/assets' },
+    ]
+  },
+  {
+    label: 'Personnel',
+    items: [
+      { label: 'Agents', href: '/app/employees' },
+      { label: 'Demandes', href: '/app/claims', roles: ['UNIT_CHIEF', 'GROUP_CHIEF'] },
+    ]
+  },
+  {
+    label: 'Administration',
+    items: [
+      { label: 'Antennes', href: '/app/stores', roles: ['UNIT_CHIEF'] },
+      { label: 'Alertes', href: '/app/alerts', badge: alertCount > 0 ? alertCount : undefined },
+    ]
+  }
 ];
+
+function canAccess(roles?: string[]) {
+  if (!roles) return true;
+  return roles.includes(user.role);
+}
 
 function isActive(href: string, exact = false) {
   const currentPath = Astro.url.pathname;
@@ -60,15 +94,23 @@ function isActive(href: string, exact = false) {
         </a>
       </div>
       <nav class="app-sidebar__nav">
-        {navItems.map(item => {
-          if (item.role === 'ADMIN' && user.role !== 'ADMIN') return null;
-          if (item.role === 'MANAGER' && user.role === 'EMPLOYEE') return null;
+        {navSections.map(section => {
+          const visibleItems = section.items.filter(item => canAccess(item.roles));
+          if (visibleItems.length === 0) return null;
 
-          const active = isActive(item.href, item.exact);
           return (
-            <a href={item.href} class:list={["app-sidebar__link", { active }]}>
-              {item.label}
-            </a>
+            <div class="app-sidebar__section">
+              <div class="app-sidebar__section-label">{section.label}</div>
+              {visibleItems.map(item => {
+                const active = isActive(item.href, item.exact);
+                return (
+                  <a href={item.href} class:list={["app-sidebar__link", { active }]}>
+                    {item.label}
+                    {item.badge && <span class="app-sidebar__badge">{item.badge}</span>}
+                  </a>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -189,13 +231,36 @@ function isActive(href: string, exact = false) {
     }
   }
 
+  .app-sidebar__section {
+    margin-bottom: $spacing-md;
+
+    &:first-child .app-sidebar__section-label {
+      padding-top: $spacing-sm;
+    }
+  }
+
   .app-sidebar__section-label {
-    padding: $spacing-xl $spacing-lg $spacing-sm;
-    font-size: $font-size-xs;
+    padding: $spacing-lg $spacing-lg $spacing-sm;
+    font-size: 10px;
     font-weight: $font-weight-semibold;
     color: $color-text-muted;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
+  }
+
+  .app-sidebar__badge {
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    background: $color-error;
+    color: #fff;
+    font-size: 10px;
+    font-weight: $font-weight-bold;
+    border-radius: $radius-full;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .app-sidebar__footer {

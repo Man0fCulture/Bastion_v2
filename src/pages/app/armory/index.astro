@@ -1,0 +1,339 @@
+---
+export const prerender = false;
+
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Badge from '../../../components/ui/Badge.astro';
+import { getWeapons, getAmmunition, getWeaponCheckouts } from '../../../lib/db';
+
+const user = Astro.locals.user!;
+const weapons = getWeapons();
+const ammunition = getAmmunition();
+const pendingCheckouts = getWeaponCheckouts({ status: 'PENDING' });
+
+const totalWeapons = weapons.length;
+const availableWeapons = weapons.filter(w => w.state === 'AVAILABLE').length;
+const checkedOutWeapons = weapons.filter(w => w.state === 'CHECKED_OUT').length;
+const maintenanceWeapons = weapons.filter(w => w.state === 'MAINTENANCE').length;
+
+const stateLabels: Record<string, string> = {
+  AVAILABLE: 'Disponible',
+  CHECKED_OUT: 'Sortie',
+  MAINTENANCE: 'Maintenance',
+  LOST: 'Perdue'
+};
+
+const stateVariants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  AVAILABLE: 'success',
+  CHECKED_OUT: 'info',
+  MAINTENANCE: 'warning',
+  LOST: 'error'
+};
+
+const typeLabels: Record<string, string> = {
+  PISTOL: 'Pistolet',
+  RIFLE: 'Fusil d\'assaut',
+  SHOTGUN: 'Fusil à pompe',
+  SMG: 'Pistolet-mitrailleur',
+  SNIPER: 'Fusil de précision',
+  OTHER: 'Autre'
+};
+---
+<AppLayout title="Armurerie" user={user}>
+  <div class="armory-page">
+    <div class="page-header">
+      <div class="page-header__content">
+        <h1 class="page-title">Armurerie</h1>
+        <p class="page-subtitle">Gestion des armes et munitions</p>
+      </div>
+      {pendingCheckouts.length > 0 && (
+        <a href="/app/armory/pending" class="pending-badge">
+          {pendingCheckouts.length} demande{pendingCheckouts.length > 1 ? 's' : ''} en attente
+        </a>
+      )}
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-card__value">{totalWeapons}</span>
+        <span class="stat-card__label">Total armes</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{availableWeapons}</span>
+        <span class="stat-card__label">Disponibles</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{checkedOutWeapons}</span>
+        <span class="stat-card__label">En sortie</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value">{maintenanceWeapons}</span>
+        <span class="stat-card__label">Maintenance</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section__header">
+        <h2 class="section__title">Armes</h2>
+      </div>
+      <div class="weapons-grid">
+        {weapons.map(weapon => (
+          <a href={`/app/armory/${weapon.id}`} class="weapon-card">
+            <div class="weapon-card__header">
+              <span class="weapon-card__type">{typeLabels[weapon.type]}</span>
+              <Badge variant={stateVariants[weapon.state]} size="sm">
+                {stateLabels[weapon.state]}
+              </Badge>
+            </div>
+            <div class="weapon-card__body">
+              <h3 class="weapon-card__name">{weapon.name}</h3>
+              <div class="weapon-card__details">
+                <div class="weapon-card__detail">
+                  <span class="weapon-card__detail-label">Calibre</span>
+                  <span class="weapon-card__detail-value">{weapon.caliber}</span>
+                </div>
+                <div class="weapon-card__detail">
+                  <span class="weapon-card__detail-label">Tirs</span>
+                  <span class="weapon-card__detail-value">{weapon.shot_count.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            <div class="weapon-card__footer">
+              <span class="weapon-card__serial">{weapon.serial_number}</span>
+              <span class="weapon-card__arrow">→</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section__header">
+        <h2 class="section__title">Stock munitions</h2>
+      </div>
+      <div class="ammo-grid">
+        {ammunition.map(ammo => (
+          <div class="ammo-card">
+            <span class="ammo-card__caliber">{ammo.caliber}</span>
+            <span class="ammo-card__quantity">{ammo.quantity.toLocaleString()}</span>
+            <span class="ammo-card__label">cartouches</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</AppLayout>
+
+<style lang="scss">
+  @use '../../../styles/variables' as *;
+  @use '../../../styles/mixins' as *;
+
+  .armory-page {
+    max-width: 1400px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: $spacing-2xl;
+  }
+
+  .page-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    color: $color-text-secondary;
+    font-size: $font-size-base;
+  }
+
+  .pending-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: $spacing-sm $spacing-lg;
+    background: rgba($color-warning, 0.15);
+    color: $color-warning;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    border-radius: $radius-full;
+    text-decoration: none;
+    transition: background $transition-fast;
+
+    &:hover {
+      background: rgba($color-warning, 0.25);
+      color: $color-warning;
+    }
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: $spacing-lg;
+    margin-bottom: $spacing-2xl;
+  }
+
+  .stat-card {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  .stat-card__value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    font-family: $font-family-mono;
+    color: $color-text-primary;
+  }
+
+  .stat-card__label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  .section {
+    margin-bottom: $spacing-2xl;
+  }
+
+  .section__header {
+    margin-bottom: $spacing-lg;
+  }
+
+  .section__title {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+  }
+
+  .weapons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .weapon-card {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    text-decoration: none;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: $color-border-hover;
+      transform: translateY(-2px);
+    }
+  }
+
+  .weapon-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
+  }
+
+  .weapon-card__type {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .weapon-card__body {
+    margin-bottom: $spacing-lg;
+  }
+
+  .weapon-card__name {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+
+  .weapon-card__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+  }
+
+  .weapon-card__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .weapon-card__detail-label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+
+  .weapon-card__detail-value {
+    font-size: $font-size-sm;
+    color: $color-text-primary;
+    font-family: $font-family-mono;
+  }
+
+  .weapon-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: $spacing-md;
+    border-top: 1px solid $color-border;
+  }
+
+  .weapon-card__serial {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-family: $font-family-mono;
+  }
+
+  .weapon-card__arrow {
+    color: $color-text-tertiary;
+    transition: transform $transition-fast;
+
+    .weapon-card:hover & {
+      transform: translateX(4px);
+      color: $color-text-primary;
+    }
+  }
+
+  .ammo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: $spacing-lg;
+  }
+
+  .ammo-card {
+    background: $color-bg-card;
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    padding: $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: $spacing-xs;
+  }
+
+  .ammo-card__caliber {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    font-weight: $font-weight-medium;
+  }
+
+  .ammo-card__quantity {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    font-family: $font-family-mono;
+    color: $color-text-primary;
+  }
+
+  .ammo-card__label {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+</style>
